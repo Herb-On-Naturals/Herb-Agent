@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
-const MongoStore = require('connect-mongo').default;
+const MongoStore = require('connect-mongo');
 const cron = require('node-cron');
 require('dotenv').config();
 
@@ -16,6 +16,14 @@ const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
 
 // Required on Render/behind reverse proxy so secure session cookies work correctly.
 app.set('trust proxy', 1);
+
+// Global Traffic Tracer
+app.use((req, res, next) => {
+    if (req.path.includes('webhook') || req.path.includes('bot')) {
+        console.log(`🌐 [GLOBAL TRAFFIC] ${req.method} ${req.path} from ${req.ip}`);
+    }
+    next();
+});
 
 // ==================== SECURITY MIDDLEWARE ====================
 // Helmet — security headers (XSS, clickjacking, MIME sniffing protection)
