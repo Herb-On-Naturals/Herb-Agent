@@ -423,12 +423,20 @@ function sanitizeValue(val) {
     return val.trim().replace(/^['"]|['"]$/g, '');
 }
 
+// Helper to sanitize env vars (remove quotes/spaces)
+function sanitizeValue(val) {
+    if (typeof val !== 'string') return '';
+    return val.trim().replace(/^['"]|['"]$/g, '');
+}
+
 async function handleMetaWebhookPost(req, res) {
     try {
+        console.log(`🔔 Received Webhook POST from ${req.ip}`);
         if (!verifyWebhookSignature(req)) {
-            console.warn('Invalid webhook signature - rejecting');
-            return res.sendStatus(403);
+            console.warn('❌ Invalid webhook signature - message rejected');
+            return res.sendStatus(401);
         }
+        console.log('✅ Webhook signature verified');
 
         const body = req.body;
         if (body.object === 'whatsapp_business_account') {
