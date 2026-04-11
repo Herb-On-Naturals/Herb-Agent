@@ -404,11 +404,23 @@ function verifyWebhookSignature(req) {
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
-router.post('/bot/webhook', async (req, res) => {
+function extractIncomingText(message) {
+    if (!message) return '';
+    if (message.type === 'text') return message.text?.body || '';
+    if (message.type === 'button') return message.button?.text || message.button?.payload || '';
+    if (message.type === 'interactive') {
+        return message.interactive?.button_reply?.title ||
+            message.interactive?.list_reply?.title ||
+            message.interactive?.nfm_reply?.body ||
+            '';
+    }
+    return '';
+}
+
+async function handleMetaWebhookPost(req, res) {
     try {
-        // Verify webhook signature from Meta
         if (!verifyWebhookSignature(req)) {
-            console.warn('⚠️ Invalid webhook signature — rejecting');
+            console.warn('Invalid webhook signature - rejecting');
             return res.sendStatus(403);
         }
 
@@ -418,8 +430,10 @@ router.post('/bot/webhook', async (req, res) => {
                 for (const change of entry.changes || []) {
                     if (change.field === 'messages' && change.value?.messages) {
                         for (const message of change.value.messages) {
-                            if (message.type === 'text' && message.text?.body) {
-                                await handleIncomingMessage(message.from, message.text.body, change.value.contacts?.[0]?.profile?.name);
+                            const incomingText = extractIncomingText(message).trim();
+                            const senderName = change.value.contacts?.[0]?.profile?.name;
+                            if (incomingText && message.from) {
+                                await handleIncomingMessage(message.from, incomingText, senderName);
                             }
                         }
                     }
@@ -428,12 +442,12 @@ router.post('/bot/webhook', async (req, res) => {
         }
         res.sendStatus(200);
     } catch (err) {
-        console.error('❌ Bot webhook error:', err.message);
+        console.error('Bot webhook error:', err.message);
         res.sendStatus(200);
     }
-});
+}
 
-router.get('/bot/webhook', (req, res) => {
+function handleMetaWebhookVerify(req, res) {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
@@ -443,11 +457,17 @@ router.get('/bot/webhook', (req, res) => {
         process.env.META_WEBHOOK_SECRET ||
         'salesagent_verify_123';
     if (mode === 'subscribe' && token === verifyToken) {
-        console.log('✅ Sales Agent webhook verified');
+        console.log('Webhook verified');
         return res.status(200).send(challenge);
     }
     res.sendStatus(403);
-});
+}
+
+// Keep both paths for compatibility: /api/bot/webhook and /api/whatsapp/webhook
+router.post('/bot/webhook', handleMetaWebhookPost);
+router.post('/whatsapp/webhook', handleMetaWebhookPost);
+router.get('/bot/webhook', handleMetaWebhookVerify);
+router.get('/whatsapp/webhook', handleMetaWebhookVerify);
 
 // ==================== HANDLE INCOMING MESSAGE ====================
 async function handleIncomingMessage(senderPhone, messageText, senderName) {
