@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herbon Sales Agent | Reorder Dashboard</title>
+    <meta name="description" content="Herbon Naturals AI Sales Agent - Delivered Order Reorder System">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- ===== LOGIN OVERLAY ===== -->
+    <div id="loginOverlay" class="modal-overlay" style="display:none; backdrop-filter:blur(10px); z-index:9999;">
+        <div class="modal" style="max-width:400px; text-align:center; padding:40px;">
+            <div style="font-size:50px; margin-bottom:20px;">🤖</div>
+            <h2 style="margin-bottom:10px;">Herbon Sales Agent</h2>
+            <p style="color:var(--text-muted); margin-bottom:24px;">Please enter admin password to continue</p>
+            <div class="form-group">
+                <input type="password" id="loginPass" class="form-input" placeholder="Password"
+                    style="text-align:center; font-size:18px;">
+            </div>
+            <button class="btn btn-accent" id="btnLogin" style="width:100\%; margin-top:20px; padding:12px;">🔓 Unlock
+                Dashboard</button>
+            <p id="loginError" style="color:#ef4444; margin-top:16px; font-size:14px; display:none;">Invalid password,
+                please try again.</p>
+        </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo-icon">🤖</div>
+            <div>
+                <h1 class="logo-text">Sales Agent</h1>
+                <p class="logo-sub">Herbon Naturals · Reorder System</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-badge" id="dbStatus">
+                <span class="pulse"></span>
+                <span>Connecting...</span>
+            </div>
+            <div class="mode-badge" id="modeBadge">Mock Mode</div>
+            <button class="btn btn-outline btn-sm" id="btnLogout"
+                style="margin-left:12px; border-color:rgba(255,255,255,0.1); font-size:11px;">🔒 Logout</button>
+        </div>
+    </header>
+
+    <!-- ===== STATS CARDS ===== -->
+    <section class="stats-row" id="statsRow">
+        <div class="stat-card stat-delivered">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statDelivered">—</span>
+                <span class="stat-label">Delivered Orders</span>
+            </div>
+        </div>
+        <div class="stat-card stat-reorders">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statReorders">—</span>
+                <span class="stat-label">Reorders Booked</span>
+            </div>
+        </div>
+        <div class="stat-card stat-rate">
+            <div class="stat-icon">📈</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statRate">—</span>
+                <span class="stat-label">Reorder Rate</span>
+            </div>
+        </div>
+        <div class="stat-card stat-revenue">
+            <div class="stat-icon">💰</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statRevenue">—</span>
+                <span class="stat-label">Reorder Revenue</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB NAV ===== -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="orders">📦 Delivered Orders</button>
+        <button class="tab-btn" data-tab="whatsapp">💬 WhatsApp</button>
+        <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+        <button class="tab-btn" data-tab="campaigns">📢 Campaigns</button>
+        <button class="tab-btn" data-tab="logs">📞 Call Logs</button>
+        <button class="tab-btn" data-tab="reorders">🔄 Reorder History</button>
+        <button class="tab-btn" data-tab="upload">📤 Upload Excel</button>
+    </nav>
+
+    <!-- ===== TAB: DELIVERED ORDERS ===== -->
+    <section class="tab-content active" id="tab-orders">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Delivered Orders</h2>
+                <div class="panel-actions">
+                    <input type="text" class="search-input" id="orderSearch"
+                        placeholder="Search name, mobile, order ID...">
+                    <input type="date" class="date-input" id="orderDateFrom" title="From Date">
+                    <input type="date" class="date-input" id="orderDateTo" title="To Date">
+                    <button class="btn btn-outline" id="btnFilterOrders">🔍 Filter</button>
+                    <button class="btn btn-accent" id="btnCreateCampaign">📢 Create Campaign</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll" title="Select All"></th>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Mobile</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Delivered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersBody">
+                        <tr>
+                            <td colspan="8" class="loading-cell">Loading delivered orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="ordersPagination"></div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: WHATSAPP ===== -->
+    <section class="tab-content" id="tab-whatsapp">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>💬 WhatsApp Messaging</h2>
+                <div class="panel-actions">
+                    <span class="wa-status" id="waStatus">⏳ Checking...</span>
+                    <button class="btn btn-success" id="btnBulkWA" disabled>📤 Bulk Send to Selected</button>
+                </div>
+            </div>
+
+            <!-- Template Selector -->
+            <div class="wa-controls">
+                <div class="form-group">
+                    <label>📋 Message Template</label>
+                    <select id="waTemplateSelect" class="form-input">
+                        <option value="">Loading templates...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:2">
+                    <label>✏️ Message Preview (edit before sending)</label>
+                    <textarea id="waMessageText" class="form-input" rows="5"
+                        placeholder="Select a template or type custom message..."></textarea>
+                </div>
+                <p class="wa-hint">💡 Use <code>{name}</code>, <code>{order_id}</code>, <code>{total}</code> for
+                    personalization</p>
+            </div>
+
+            <!-- Orders table for WhatsApp -->
+            <div class="table-wrap">
+                <table class="data-table" id="waOrdersTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="waSelectAll" title="Select All"></th>
+                            <th>Customer</th>
+                            <th>Mobile</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Delivered</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="waOrdersBody">
+                        <tr>
+                            <td colspan="7" class="loading-cell">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="waOrdersPagination"></div>
+
+            <!-- ===== BOT CONVERSATIONS: WhatsApp-Style Layout ===== -->
+            <div class="panel-header" style="margin-top:24px">
+                <h2>🤖 AI Bot Conversations</h2>
+                <button class="btn btn-outline" id="btnRefreshConvs">🔄 Refresh</button>
+            </div>
+            <div class="chat-layout">
+                <!-- LEFT: Conversation List -->
+                <div class="chat-list" id="chatList">
+                    <div class="chat-list-empty">No conversations yet.<br>Click "🤖 AI Chat" on any order to start!
+                    </div>
+                </div>
+
+                <!-- RIGHT: Chat Panel -->
+                <div class="chat-panel" id="chatPanel">
+                    <div class="chat-panel-empty" id="chatPanelEmpty">
+                        <div class="chat-panel-empty-icon">💬</div>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a conversation from the list to view the full chat history</p>
+                    </div>
+                    <div class="chat-panel-active" id="chatPanelActive" style="display:none">
+                        <!-- Chat Header -->
+                        <div class="chat-header-bar">
+                            <div class="chat-header-info">
+                                <div class="chat-avatar">🤖</div>
+                                <div>
+                                    <strong id="chatCustName">Customer</strong>
+                                    <span class="conv-status active" id="chatConvStatus">active</span>
+                                </div>
+                            </div>
+                            <div class="chat-header-meta">
+                                <span id="chatOrderInfo">—</span>
+                            </div>
+                        </div>
+
+                        <!-- Messages -->
+                        <div class="chat-thread" id="chatThread"></div>
+
+                        <!-- Simulate Input -->
+                        <div class="chat-input-bar">
+                            <input type="text" id="chatSimInput" class="form-input"
+                                placeholder="Customer ka reply simulate karo (testing ke liye)...">
+                            <button class="btn btn-accent" id="btnSimSend">➤ Send</button>
+                        </div>
+                        <p class="wa-hint" style="padding:0 12px 8px">💡 Testing: Customer ka reply yahan type karo, AI
+                            Bot automatically reply karega</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: CAMPAIGNS ===== -->
+    <section class="tab-content" id="tab-campaigns">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Call Campaigns</h2>
+                <button class="btn btn-accent" id="btnRefreshCampaigns">🔄 Refresh</button>
+            </div>
+            <div id="campaignsList" class="campaigns-grid">
+                <p class="empty-msg">No campaigns yet. Select orders and create one!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: CALL LOGS ===== -->
+    <section class="tab-content" id="tab-logs">
+        <!-- Quick Test Call -->
+        <div class="panel" style="margin-bottom:16px; border-left:4px solid #f472b6;">
+            <div class="panel-header">
+                <h2>🚀 Quick Test Call</h2>
+                <span style="font-size:12px; color:var(--text-muted);">Test AI calling with any number</span>
+            </div>
+            <div style="padding:16px; display:flex; gap:12px; align-items:flex-end;">
+                <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label style="font-size:11px; margin-bottom:4px;">Customer Name</label>
+                    <input type="text" id="quickName" class="form-input" placeholder="e.g. Test User">
+                </div>
+                <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label style="font-size:11px; margin-bottom:4px;">Mobile Number</label>
+                    <input type="text" id="quickMobile" class="form-input" placeholder="e.g. 9876543210">
+                </div>
+                <button class="btn btn-accent" id="btnQuickCall" style="padding:10px 20px;">📞 Call Now</button>
+            </div>
+        </div>
+
+        <!-- Scheduled Calls -->
+        <div class="panel" style="margin-bottom:16px">
+            <div class="panel-header">
+                <h2>⏰ Scheduled Calls</h2>
+                <div>
+                    <button class="btn btn-accent btn-sm" onclick="runScheduledCalls()">⚡ Run Due Calls</button>
+                    <button class="btn btn-outline btn-sm" onclick="loadScheduledCalls()">🔄 Refresh</button>
+                </div>
+            </div>
+            <div id="scheduledCallsList" style="padding:12px">
+                <p class="empty-msg">No scheduled calls</p>
+            </div>
+        </div>
+
+        <!-- Call Logs -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📞 Call Logs</h2>
+                <button class="btn btn-outline" id="btnRefreshLogs">🔄 Refresh</button>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>Call ID</th>
+                            <th>Customer</th>
+                            <th>Mobile</th>
+                            <th>Segment</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                            <th>Sentiment</th>
+                            <th>Duration</th>
+                            <th>Time</th>
+                            <th>Transcript</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr>
+                            <td colspan="10" class="loading-cell">Loading call logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TRANSCRIPT MODAL ===== -->
+    <div class="modal-overlay" id="transcriptModal" style="display:none">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <h3>📝 Call Transcript — <span id="transcriptCallId"></span></h3>
+                <button class="modal-close"
+                    onclick="document.getElementById('transcriptModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                    <span class="status-badge" id="transcriptResult"></span>
+                    <span class="status-badge" id="transcriptSentiment"></span>
+                    <span style="color:var(--text-muted);font-size:13px" id="transcriptDuration"></span>
+                </div>
+                <div id="transcriptContent"
+                    style="background:rgba(0,0,0,0.3);padding:16px;border-radius:8px;max-height:400px;overflow-y:auto;white-space:pre-wrap;font-size:13px;line-height:1.8;font-family:monospace">
+                </div>
+                <div id="transcriptDiscount" style="margin-top:12px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB: REORDER HISTORY ===== -->
+    <section class="tab-content" id="tab-reorders">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Reorder History</h2>
+                <button class="btn btn-outline" id="btnRefreshReorders">🔄 Refresh</button>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="reordersTable">
+                    <thead>
+                        <tr>
+                            <th>Reorder ID</th>
+                            <th>Original Order</th>
+                            <th>New Order</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Source</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reordersBody">
+                        <tr>
+                            <td colspan="8" class="loading-cell">Loading reorder history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: ANALYTICS ===== -->
+    <section class="tab-content" id="tab-analytics">
+        <!-- AI Bot Stats -->
+        <div class="stats-row" id="aiStatsRow">
+            <div class="stat-card" style="border-left:3px solid #667eea">
+                <div class="stat-icon">🤖</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="aiTotalConvs">—</span>
+                    <span class="stat-label">Total Conversations</span>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid var(--accent)">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="aiReorders">—</span>
+                    <span class="stat-label">AI Reorders</span>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid #fbbf24">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="aiRevenue">—</span>
+                    <span class="stat-label">AI Revenue</span>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left:3px solid #f472b6">
+                <div class="stat-icon">📈</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="aiConvRate">—</span>
+                    <span class="stat-label">Conversion Rate</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+            <!-- Conversion Funnel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📊 Conversion Funnel</h2>
+                </div>
+                <div id="funnelChart" style="padding:20px">
+                    <p class="empty-msg">Loading funnel...</p>
+                </div>
+            </div>
+
+            <!-- Customer Segments -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>👥 Customer Segments</h2>
+                </div>
+                <div id="segmentsChart" style="padding:20px">
+                    <p class="empty-msg">Loading segments...</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+            <!-- Sentiment Analysis -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>😊 Sentiment Analysis</h2>
+                </div>
+                <div id="sentimentChart" style="padding:20px">
+                    <p class="empty-msg">Loading sentiments...</p>
+                </div>
+            </div>
+
+            <!-- Follow-up Status & Products -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>⏰ Follow-ups & Products</h2>
+                    <button class="btn btn-accent btn-sm" onclick="seedProducts()">🌿 Seed Products</button>
+                </div>
+                <div id="followupStats" style="padding:20px">
+                    <p class="empty-msg">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px">
+            <!-- Call Analytics -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📞 Call Analytics</h2>
+                </div>
+                <div id="callAnalyticsPanel" style="padding:20px">
+                    <p class="empty-msg">Loading call analytics...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Customers -->
+        <div class="panel" style="margin-top:16px">
+            <div class="panel-header">
+                <h2>🏆 Top Customers</h2>
+                <button class="btn btn-outline btn-sm" onclick="loadAnalytics()">🔄 Refresh</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Segment</th>
+                            <th>Orders</th>
+                            <th>Total Spent</th>
+                            <th>Avg Order</th>
+                            <th>Conversations</th>
+                            <th>Reorders</th>
+                            <th>Sentiment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topCustomersBody">
+                        <tr>
+                            <td colspan="9" class="loading-cell">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: UPLOAD EXCEL ===== -->
+    <section class="tab-content" id="tab-upload">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📤 Upload Excel Data</h2>
+                <a href="/api/download-template" class="btn btn-outline" download>📥 Download Sample Template</a>
+            </div>
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <h3>Drag & Drop Excel File Here</h3>
+                <p>or click to browse • Supports .xlsx, .xls, .csv</p>
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" hidden>
+                <button class="btn btn-accent" id="btnBrowse">📂 Browse Files</button>
+            </div>
+            <div id="uploadProgress" class="upload-progress" style="display:none">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="uploadStatusText">Uploading...</p>
+            </div>
+            <div id="uploadResult" class="upload-result" style="display:none"></div>
+        </div>
+    </section>
+
+    <!-- ===== REORDER MODAL ===== -->
+    <div class="modal-overlay" id="reorderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🔄 Reorder — <span id="modalOriginalId"></span></h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer Name</label>
+                        <input type="text" id="rCustomerName" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile</label>
+                        <input type="text" id="rMobile" class="form-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea id="rAddress" class="form-input" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="rCity" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" id="rState" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Pincode</label>
+                        <input type="text" id="rPincode" class="form-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Items</label>
+                    <div id="rItemsList" class="items-list"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Total (₹)</label>
+                        <input type="number" id="rTotal" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Mode</label>
+                        <select id="rPayment" class="form-input">
+                            <option value="COD">COD</option>
+                            <option value="Prepaid">Prepaid</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btnCancelReorder">Cancel</button>
+                <button class="btn btn-success" id="btnSubmitReorder">✅ Create Reorder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CAMPAIGN CREATE MODAL ===== -->
+    <div class="modal-overlay" id="campaignModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📢 Create Campaign</h3>
+                <button class="modal-close" id="campaignModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Campaign Name</label>
+                    <input type="text" id="campName" class="form-input" placeholder="e.g. February Reorder Campaign">
+                </div>
+                <div class="form-group">
+                    <label>Description (optional)</label>
+                    <textarea id="campDesc" class="form-input" rows="2"
+                        placeholder="Follow up with Feb delivered orders..."></textarea>
+                </div>
+                <p class="selected-count">Selected Orders: <strong id="campSelectedCount">0</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btnCancelCampaign">Cancel</button>
+                <button class="btn btn-accent" id="btnConfirmCampaign">📢 Create Campaign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
