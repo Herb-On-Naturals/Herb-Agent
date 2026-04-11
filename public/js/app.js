@@ -50,14 +50,19 @@ async function login() {
         const data = await res.json();
         if (data.success) {
             document.getElementById('loginOverlay').style.display = 'none';
-            showToast('✅ Access Granted', 'success');
+            errorEl.style.display = 'none';
+            showToast('Access Granted', 'success');
             startDashboard();
         } else {
+            errorEl.textContent = data.message || (res.status === 429
+                ? 'Too many login attempts, try again later.'
+                : 'Invalid password, please try again.');
             errorEl.style.display = 'block';
-            setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+            setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
         }
     } catch (e) {
-        showToast('❌ Login failed', 'error');
+        errorEl.textContent = 'Login request failed. Please refresh and try again.';
+        errorEl.style.display = 'block';
     }
 }
 
