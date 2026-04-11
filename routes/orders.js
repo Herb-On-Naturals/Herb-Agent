@@ -9,6 +9,7 @@ router.get('/delivered-orders', async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         let query = { status: 'Delivered' };
+        console.log(`🔍 Fetching delivered orders. Query: ${JSON.stringify(query)}`);
 
         // Date filter on deliveredAt
         if (startDate || endDate) {
@@ -163,6 +164,7 @@ router.get('/reorders', async (req, res) => {
 // ==================== DASHBOARD STATS ====================
 router.get('/stats', async (req, res) => {
     try {
+        console.log('📊 Fetching dashboard stats...');
         const [totalDelivered, totalReorders, reordersList] = await Promise.all([
             Order.countDocuments({ status: 'Delivered' }),
             Reorder.countDocuments(),
