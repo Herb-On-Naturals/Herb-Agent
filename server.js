@@ -6,13 +6,14 @@ const mongoose = require('mongoose');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const connectMongo = require('connect-mongo');
 const cron = require('node-cron');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
+const MongoStore = connectMongo.default || connectMongo.MongoStore || connectMongo;
 
 // Required on Render/behind reverse proxy so secure session cookies work correctly.
 app.set('trust proxy', 1);
@@ -33,7 +34,14 @@ app.use(helmet({
 }));
 
 app.use(compression());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({
+    limit: '5mb',
+    verify: (req, res, buf) => {
+        if (req.originalUrl && req.originalUrl.includes('/webhook')) {
+            req.rawBody = buf.toString('utf8');
+        }
+    }
+}));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // CORS — restricted to allowed origins
@@ -103,6 +111,9 @@ const sessionConfig = {
 
 if (MONGODB_URI) {
     try {
+        if (typeof MongoStore.create !== 'function') {
+            throw new Error('connect-mongo create() not available');
+        }
         sessionConfig.store = MongoStore.create({
             mongoUrl: MONGODB_URI,
             collectionName: 'agent_sessions',

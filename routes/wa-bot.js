@@ -10,6 +10,30 @@ const ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || process.env.META_ACCESS
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const META_API_VERSION = process.env.META_WA_API_VERSION || ((process.env.META_WA_API_VERSIONS || 'v18.0').split(',')[0] || 'v18.0').trim();
 const GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER_ID}/messages`;
+const START_TEMPLATE_NAME = sanitizeValue(process.env.META_WA_TEMPLATE_NAME_START || 'hello_world') || 'hello_world';
+const START_TEMPLATE_LANG = sanitizeValue(process.env.META_WA_TEMPLATE_LANG_START || 'en_US') || 'en_US';
+const ENFORCE_SIGNATURE = sanitizeValue(process.env.META_ENFORCE_SIGNATURE || 'true').toLowerCase() !== 'false';
+
+function sanitizeValue(val) {
+    if (typeof val !== 'string') return '';
+    return val.trim().replace(/^['"]|['"]$/g, '');
+}
+
+function normalizePhoneForWhatsApp(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length === 10) return '91' + digits;
+    return digits;
+}
+
+function getMetaErrorSummary(err) {
+    const error = err?.response?.data?.error;
+    if (!error) return err?.message || 'Unknown Meta API error';
+    const parts = [error.message];
+    if (error.code) parts.push(`code=${error.code}`);
+    if (error.error_data?.details) parts.push(error.error_data.details);
+    return parts.filter(Boolean).join(' | ');
+}
 
 // ==================== BUILD DYNAMIC SYSTEM PROMPT ====================
 async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) {
@@ -182,8 +206,10 @@ async function sendWhatsApp(phone, text) {
         return { mock: true };
     }
 
-    let cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+    const cleanPhone = normalizePhoneForWhatsApp(phone);
+    if (!cleanPhone) {
+        throw new Error('Invalid recipient phone number');
+    }
 
     // 1. Try sending as plain text (Works if user messaged first or within 24h)
     log(`📱 Sending live TEXT message via Meta to ${cleanPhone}...`);
@@ -200,7 +226,7 @@ async function sendWhatsApp(phone, text) {
         log(`✅ TEXT Success: ${res.data.messages?.[0]?.id}`);
         return { messageId: res.data.messages?.[0]?.id, phone: cleanPhone };
     } catch (err) {
-        log(`⚠️ TEXT Failed: ${err.message}. Attempting Template Fallback...`);
+        log(`⚠️ TEXT Failed: ${getMetaErrorSummary(err)}. Attempting Template Fallback...`);
 
         // 2. Fallback to Template Message (Works for initial contact/outside 24h)
         try {
@@ -209,8 +235,8 @@ async function sendWhatsApp(phone, text) {
                 to: cleanPhone,
                 type: 'template',
                 template: {
-                    name: 'hello_world',
-                    language: { code: 'en_US' }
+                    name: START_TEMPLATE_NAME,
+                    language: { code: START_TEMPLATE_LANG }
                 }
             }, {
                 headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}`, 'Content-Type': 'application/json' }
@@ -219,7 +245,7 @@ async function sendWhatsApp(phone, text) {
             log(`✅ TEMPLATE Success: ${templateRes.data.messages?.[0]?.id}`);
             return { messageId: templateRes.data.messages?.[0]?.id, phone: cleanPhone, type: 'template_fallback' };
         } catch (templateErr) {
-            log(`❌ TEMPLATE Failed: ${templateErr.message}`);
+            log(`❌ TEMPLATE Failed: ${getMetaErrorSummary(templateErr)}`);
             log(`❌ Error Details: ${JSON.stringify(templateErr.response?.data || {})}`);
             throw templateErr;
         }
@@ -281,7 +307,8 @@ router.post('/bot/start', async (req, res) => {
         const phone = order.mobile || order.telNo;
         if (!phone) return res.status(400).json({ success: false, message: 'No phone on order' });
 
-        const cleanPhone = phone.replace(/\D/g, '');
+        const cleanPhone = normalizePhoneForWhatsApp(phone);
+        if (!cleanPhone) return res.status(400).json({ success: false, message: 'Invalid phone on order' });
 
         // Check for existing active conversation
         let conv = await Conversation.findOne({ phone: { $regex: cleanPhone.slice(-10) }, status: 'active' });
@@ -330,8 +357,8 @@ router.post('/bot/start', async (req, res) => {
                 to: cleanPhone,
                 type: 'template',
                 template: {
-                    name: 'hello_world',
-                    language: { code: 'en_US' }
+                    name: START_TEMPLATE_NAME,
+                    language: { code: START_TEMPLATE_LANG }
                 }
             }, {
                 headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}`, 'Content-Type': 'application/json' }
@@ -340,7 +367,7 @@ router.post('/bot/start', async (req, res) => {
             console.log(`✅ Template Outreach Sent! ID: ${templateRes.data.messages?.[0]?.id}`);
             sendResult.messageId = templateRes.data.messages?.[0]?.id;
         } catch (sendErr) {
-            const errorMsg = sendErr.response?.data?.error?.message || sendErr.message;
+            const errorMsg = getMetaErrorSummary(sendErr);
             console.log(`⚠️ Template start failed for ${order.customerName}: ${errorMsg}`);
 
             const fs = require('fs');
@@ -395,13 +422,27 @@ router.post('/bot/start', async (req, res) => {
 // ==================== WEBHOOK ====================
 // Verify Meta webhook signature
 function verifyWebhookSignature(req) {
-    const appSecret = process.env.META_WEBHOOK_APP_SECRET || process.env.META_APP_SECRET || '';
-    if (!appSecret) return true; // Skip verification if app secret is not configured
+    const appSecret = sanitizeValue(
+        process.env.META_WEBHOOK_APP_SECRET ||
+        process.env.META_APP_SECRET ||
+        ''
+    );
+    if (!appSecret) return { verified: true, reason: 'app_secret_not_configured' };
+
     const signature = req.headers['x-hub-signature-256'];
-    if (!signature) return false;
-    const rawBody = JSON.stringify(req.body);
+    if (!signature) return { verified: false, reason: 'missing_signature_header' };
+
+    const rawBody = req.rawBody || JSON.stringify(req.body || {});
     const expectedSignature = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+
+    if (sigBuffer.length !== expectedBuffer.length) {
+        return { verified: false, reason: 'signature_length_mismatch' };
+    }
+
+    const verified = crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+    return { verified, reason: verified ? 'ok' : 'signature_mismatch' };
 }
 
 function extractIncomingText(message) {
@@ -414,29 +455,26 @@ function extractIncomingText(message) {
             message.interactive?.nfm_reply?.body ||
             '';
     }
+    if (message.type === 'image') return 'Customer ne image bheji hai. Image ke context me help karo.';
+    if (message.type === 'audio') return 'Customer ne voice note bheja hai. Unse politely text me sawaal pucho.';
+    if (message.type === 'video') return 'Customer ne video bheja hai. Video ke context me madad offer karo.';
+    if (message.type === 'document') return 'Customer ne document bheja hai. Unse relevant details text me pucho.';
+    if (message.type === 'sticker') return 'Customer ne sticker bheja hai. Friendly greeting ke saath reply karo.';
     return '';
-}
-
-// Helper to sanitize env vars (remove quotes/spaces)
-function sanitizeValue(val) {
-    if (typeof val !== 'string') return '';
-    return val.trim().replace(/^['"]|['"]$/g, '');
-}
-
-// Helper to sanitize env vars (remove quotes/spaces)
-function sanitizeValue(val) {
-    if (typeof val !== 'string') return '';
-    return val.trim().replace(/^['"]|['"]$/g, '');
 }
 
 async function handleMetaWebhookPost(req, res) {
     try {
         console.log(`🔔 Received Webhook POST from ${req.ip}`);
-        if (!verifyWebhookSignature(req)) {
-            console.warn('❌ Invalid webhook signature - message rejected');
-            return res.sendStatus(401);
+        const signatureCheck = verifyWebhookSignature(req);
+        if (!signatureCheck.verified) {
+            console.warn(`❌ Invalid webhook signature (${signatureCheck.reason})`);
+            if (ENFORCE_SIGNATURE) {
+                return res.sendStatus(401);
+            }
+            console.warn('⚠️ META_ENFORCE_SIGNATURE=false, continuing without strict signature enforcement.');
         }
-        console.log('✅ Webhook signature verified');
+        console.log(`✅ Webhook signature verified (${signatureCheck.reason})`);
 
         const body = req.body;
         if (body.object === 'whatsapp_business_account') {
