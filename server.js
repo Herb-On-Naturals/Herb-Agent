@@ -14,6 +14,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
 
+// Required on Render/behind reverse proxy so secure session cookies work correctly.
+app.set('trust proxy', 1);
+
 // ==================== SECURITY MIDDLEWARE ====================
 // Helmet — security headers (XSS, clickjacking, MIME sniffing protection)
 app.use(helmet({
