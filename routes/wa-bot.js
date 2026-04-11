@@ -417,6 +417,12 @@ function extractIncomingText(message) {
     return '';
 }
 
+// Helper to sanitize env vars (remove quotes/spaces)
+function sanitizeValue(val) {
+    if (typeof val !== 'string') return '';
+    return val.trim().replace(/^['"]|['"]$/g, '');
+}
+
 async function handleMetaWebhookPost(req, res) {
     try {
         if (!verifyWebhookSignature(req)) {
@@ -452,11 +458,12 @@ function handleMetaWebhookVerify(req, res) {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
     
-    const verifyToken =
+    const verifyToken = sanitizeValue(
         process.env.META_WEBHOOK_VERIFY_TOKEN ||
         process.env.META_WA_WEBHOOK_VERIFY_TOKEN ||
         process.env.META_WEBHOOK_SECRET ||
-        'salesagent_verify_123';
+        'salesagent_verify_123'
+    );
 
     console.log(`🔍 Webhook Verification Attempt: Mode=${mode}, Token=${token}, Expected=${verifyToken}`);
 
