@@ -6,7 +6,7 @@ const { Order, Reorder, Conversation, Product, CustomerProfile } = require('../m
 
 // ==================== CONFIG ====================
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || process.env.META_WA_ACCESS_TOKEN;
+const ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const META_API_VERSION = process.env.META_WA_API_VERSION || ((process.env.META_WA_API_VERSIONS || 'v18.0').split(',')[0] || 'v18.0').trim();
 const GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER_ID}/messages`;

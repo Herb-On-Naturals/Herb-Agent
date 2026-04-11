@@ -323,7 +323,7 @@ cron.schedule('*/30 * * * *', async () => {
             // Try sending via WhatsApp
             try {
                 const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
-                const token = process.env.META_ACCESS_TOKEN || process.env.META_WA_ACCESS_TOKEN;
+                const token = process.env.META_WA_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
                 const apiVersion = process.env.META_WA_API_VERSION || ((process.env.META_WA_API_VERSIONS || 'v18.0').split(',')[0] || 'v18.0').trim();
                 if (phoneId && token) {
                     await axios.post(
