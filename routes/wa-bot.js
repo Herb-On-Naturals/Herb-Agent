@@ -12,7 +12,7 @@ const META_API_VERSION = process.env.META_WA_API_VERSION || ((process.env.META_W
 const GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER_ID}/messages`;
 const START_TEMPLATE_NAME = sanitizeValue(process.env.META_WA_TEMPLATE_NAME_START || 'hello_world') || 'hello_world';
 const START_TEMPLATE_LANG = sanitizeValue(process.env.META_WA_TEMPLATE_LANG_START || 'en_US') || 'en_US';
-const ENFORCE_SIGNATURE = sanitizeValue(process.env.META_ENFORCE_SIGNATURE || 'true').toLowerCase() !== 'false';
+const ENFORCE_SIGNATURE = sanitizeValue(process.env.META_ENFORCE_SIGNATURE || 'false').toLowerCase() === 'true';
 
 function sanitizeValue(val) {
     if (typeof val !== 'string') return '';
