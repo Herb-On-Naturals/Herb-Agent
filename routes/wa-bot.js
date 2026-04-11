@@ -449,17 +449,43 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
     const cleanPhone = senderPhone.replace(/\D/g, '');
     const last10 = cleanPhone.slice(-10);
 
-    const conv = await Conversation.findOne({
+    let conv = await Conversation.findOne({
         phone: { $regex: last10 },
         status: { $in: ['active', 'interested'] }
     }).sort({ lastMessageAt: -1 });
 
     if (!conv) {
-        console.log(`📱 Message from ${cleanPhone} — no active conversation, ignoring`);
-        return;
+        console.log(`New inbound message from ${cleanPhone} - creating conversation`);
+
+        // Auto-onboard new inbound WhatsApp leads (not just existing order contacts)
+        const profile = await getOrCreateProfile(cleanPhone, senderName || 'Customer');
+        const products = await Product.find({ isActive: true }).sort({ bestSeller: -1 });
+        const catalogStr = products.map(p => {
+            const off = p.mrp ? Math.round((1 - p.price / p.mrp) * 100) : 0;
+            return `- ${p.name} - Rs.${p.price}${p.mrp ? ` (MRP Rs.${p.mrp}, ${off}% off)` : ''} ${p.bestSeller ? '*' : ''}\n  ${(p.benefits || []).slice(0, 3).join(', ')}`;
+        }).join('\n');
+
+        const discount = calculateDiscount(profile);
+        const systemPrompt = await buildSystemPrompt(profile, catalogStr, discount.discountMsg);
+
+        conv = await Conversation.create({
+            phone: cleanPhone,
+            customerName: senderName || profile.customerName || 'Customer',
+            messages: [
+                { role: 'system', content: systemPrompt }
+            ],
+            status: 'active',
+            discountOffered: discount.discountCode,
+            discountPercent: discount.discountPercent,
+            customerProfileId: profile._id,
+            lastMessageAt: new Date()
+        });
+
+        profile.totalConversations += 1;
+        await profile.save();
     }
 
-    console.log(`📩 Bot received from ${conv.customerName} (${cleanPhone}): "${messageText}"`);
+    console.log(`Bot received from ${conv.customerName} (${cleanPhone}): "${messageText}"`);
 
     // Add user message
     conv.messages.push({ role: 'user', content: messageText });
@@ -578,15 +604,16 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
 
 // ==================== AUTO-CREATE REORDER ====================
 async function createAutoReorder(conv) {
-    const originalOrder = await Order.findById(conv.originalOrderMongoId);
-    if (!originalOrder) throw new Error('Original order not found');
+    const originalOrder = conv.originalOrderMongoId
+        ? await Order.findById(conv.originalOrderMongoId)
+        : null;
 
     const newOrderId = 'WABOT-' + Date.now();
     const now = new Date().toISOString();
 
     // Use modified cart if customer changed items, otherwise original items
-    let items = originalOrder.items || [];
-    let total = originalOrder.total || 0;
+    let items = originalOrder?.items || [];
+    let total = originalOrder?.total || 0;
 
     if (conv.modifiedCart && conv.modifiedCart.length > 0) {
         items = conv.modifiedCart.map(item => ({
@@ -599,41 +626,52 @@ async function createAutoReorder(conv) {
         total = items.reduce((sum, i) => sum + i.amount, 0);
     }
 
+    // For new customers without order history, cart must come from AI/cart updates.
+    if (!items || items.length === 0) {
+        throw new Error('No items available to create reorder');
+    }
+
     // Apply discount
     if (conv.discountPercent > 0) {
         const discountAmount = Math.round(total * conv.discountPercent / 100);
         total = total - discountAmount;
     }
 
+    const customerName = originalOrder?.customerName || conv.customerName || 'Customer';
+    const customerPhone = originalOrder?.mobile || originalOrder?.telNo || conv.phone || '';
+    const baseAddress = originalOrder?.address || 'Address pending';
+    const baseState = originalOrder?.state || 'N/A';
+    const sourceOrderLabel = originalOrder?.orderId || 'new-inbound-lead';
+
     const newOrder = new Order({
         orderId: newOrderId,
         timestamp: now,
         employee: 'WhatsApp AI Bot',
         employeeId: 'WABOT',
-        customerName: originalOrder.customerName || conv.customerName || 'Customer',
-        telNo: originalOrder.telNo || '',
-        mobile: originalOrder.mobile || '',
-        altNo: originalOrder.altNo || '',
-        address: originalOrder.address || 'Address pending',
-        hNo: originalOrder.hNo || '',
-        villColony: originalOrder.villColony || '',
-        landmark: originalOrder.landmark || originalOrder.landMark || '',
-        city: originalOrder.city || '',
-        state: originalOrder.state || 'N/A',
-        pin: originalOrder.pin || '',
-        pincode: originalOrder.pincode || originalOrder.pin || '',
-        distt: originalOrder.distt || '',
-        orderType: 'WhatsApp AI Reorder',
+        customerName: customerName,
+        telNo: originalOrder?.telNo || customerPhone,
+        mobile: originalOrder?.mobile || customerPhone,
+        altNo: originalOrder?.altNo || '',
+        address: baseAddress,
+        hNo: originalOrder?.hNo || '',
+        villColony: originalOrder?.villColony || '',
+        landmark: originalOrder?.landmark || originalOrder?.landMark || '',
+        city: originalOrder?.city || '',
+        state: baseState,
+        pin: originalOrder?.pin || '',
+        pincode: originalOrder?.pincode || originalOrder?.pin || '',
+        distt: originalOrder?.distt || '',
+        orderType: originalOrder ? 'WhatsApp AI Reorder' : 'WhatsApp AI New Lead',
         date: now.split('T')[0],
         time: now.split('T')[1]?.substring(0, 5),
-        treatment: originalOrder.treatment || '',
-        paymentMode: originalOrder.paymentMode || 'COD',
+        treatment: originalOrder?.treatment || '',
+        paymentMode: originalOrder?.paymentMode || 'COD',
         total: total,
         codAmount: total,
         items: items,
         status: 'Pending',
         remarks: [{
-            text: `Auto-reorder via WhatsApp AI Bot from order ${originalOrder.orderId}${conv.discountPercent > 0 ? ` (${conv.discountPercent}% discount applied, code: ${conv.discountOffered})` : ''}`,
+            text: `Auto-reorder via WhatsApp AI Bot from ${sourceOrderLabel}${conv.discountPercent > 0 ? ` (${conv.discountPercent}% discount applied, code: ${conv.discountOffered})` : ''}`,
             addedBy: 'WhatsApp AI Bot',
             addedAt: now,
             timestamp: now
@@ -644,15 +682,15 @@ async function createAutoReorder(conv) {
 
     await Reorder.create({
         reorderId: 'RO-' + Date.now(),
-        originalOrderId: originalOrder.orderId,
+        originalOrderId: originalOrder?.orderId || 'NEW-LEAD',
         newOrderId: newOrderId,
-        customerName: originalOrder.customerName || conv.customerName,
-        mobile: originalOrder.mobile || originalOrder.telNo,
-        address: originalOrder.address || 'Address pending',
-        state: originalOrder.state || 'N/A',
+        customerName: customerName,
+        mobile: customerPhone,
+        address: baseAddress,
+        state: baseState,
         items: items,
         total: total,
-        paymentMode: originalOrder.paymentMode || 'COD',
+        paymentMode: originalOrder?.paymentMode || 'COD',
         source: 'WhatsApp AI',
         status: 'Created'
     });
