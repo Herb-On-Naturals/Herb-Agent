@@ -12,6 +12,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
 
 // ==================== SECURITY MIDDLEWARE ====================
 // Helmet — security headers (XSS, clickjacking, MIME sniffing protection)
@@ -45,22 +46,36 @@ app.use(cors({
 }));
 
 // Session Setup — with MongoDB store (no memory leak)
-app.use(session({
+let sessionStoreLabel = 'MemoryStore';
+const sessionConfig = {
     secret: process.env.SECRET_KEY || 'change-this-in-production',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'agent_sessions',
-        ttl: 24 * 60 * 60 // 24 hours
-    }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
     }
-}));
+};
+
+if (MONGODB_URI) {
+    try {
+        sessionConfig.store = MongoStore.create({
+            mongoUrl: MONGODB_URI,
+            collectionName: 'agent_sessions',
+            ttl: 24 * 60 * 60 // 24 hours
+        });
+        sessionStoreLabel = 'MongoStore';
+    } catch (err) {
+        console.error('Failed to initialize MongoStore:', err.message);
+        console.warn('Falling back to MemoryStore. Set valid MONGODB_URI for production.');
+    }
+} else {
+    console.warn('MONGODB_URI not set. Using MemoryStore for sessions.');
+}
+
+app.use(session(sessionConfig));
 
 // Rate Limiters
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500 });
@@ -130,7 +145,7 @@ app.post('/api/auth/logout', (req, res) => {
 // ==================== DATABASE ====================
 async function connectDB() {
     try {
-        const uri = process.env.MONGODB_URI;
+        const uri = MONGODB_URI;
         if (!uri) {
             console.error('❌ MONGODB_URI not set!');
             return false;

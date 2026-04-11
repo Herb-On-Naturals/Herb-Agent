@@ -11,7 +11,7 @@
     "logs": "pm2 logs herbon-agent"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "dependencies": {
     "axios": "^1.7.0",
