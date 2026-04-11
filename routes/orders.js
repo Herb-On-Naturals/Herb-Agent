@@ -171,6 +171,10 @@ router.get('/stats', async (req, res) => {
             Reorder.find().sort({ createdAt: -1 }).limit(5).lean()
         ]);
 
+        const dbName = require('mongoose').connection.name;
+        const totalAll = await Order.countDocuments({});
+        console.log(`📊 Stats requested. DB: ${dbName}, Total All: ${totalAll}, Delivered: ${totalDelivered}`);
+
         const totalReorderRevenue = await Reorder.aggregate([
             { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
@@ -178,6 +182,8 @@ router.get('/stats', async (req, res) => {
         res.json({
             success: true,
             stats: {
+                dbName,
+                totalAll,
                 totalDelivered,
                 totalReorders,
                 reorderRate: totalDelivered > 0 ? ((totalReorders / totalDelivered) * 100).toFixed(1) : 0,
