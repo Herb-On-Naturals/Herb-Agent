@@ -118,15 +118,28 @@ app.get('/api/auth/status', (req, res) => {
     res.json({ authenticated: !!(req.session && req.session.isAuthenticated) });
 });
 
+function normalizeSecret(value) {
+    if (typeof value !== 'string') return '';
+    return value.trim().replace(/^['"]|['"]$/g, '');
+}
+
 app.post('/api/auth/login', authLimiter, (req, res) => {
     const { password } = req.body;
-    const adminPass = process.env.ADMIN_PASSWORD;
+    const adminPass = normalizeSecret(process.env.ADMIN_PASSWORD);
+    const enteredPass = normalizeSecret(password);
 
-    if (!password || typeof password !== 'string') {
+    if (!enteredPass) {
         return res.status(400).json({ success: false, message: 'Password required' });
     }
 
-    if (password === adminPass) {
+    if (!adminPass) {
+        return res.status(500).json({
+            success: false,
+            message: 'ADMIN_PASSWORD is not configured on server. Set env var and redeploy.'
+        });
+    }
+
+    if (enteredPass === adminPass) {
         req.session.isAuthenticated = true;
         res.json({ success: true, message: 'Logged in successfully' });
     } else {
