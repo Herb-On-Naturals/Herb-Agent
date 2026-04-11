@@ -5,10 +5,11 @@ const crypto = require('crypto');
 const { Order, Reorder, Conversation, Product, CustomerProfile } = require('../models');
 
 // ==================== CONFIG ====================
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
+const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || process.env.META_WA_ACCESS_TOKEN;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GRAPH_URL = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
+const META_API_VERSION = process.env.META_WA_API_VERSION || ((process.env.META_WA_API_VERSIONS || 'v18.0').split(',')[0] || 'v18.0').trim();
+const GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER_ID}/messages`;
 
 // ==================== BUILD DYNAMIC SYSTEM PROMPT ====================
 async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) {
@@ -394,12 +395,12 @@ router.post('/bot/start', async (req, res) => {
 // ==================== WEBHOOK ====================
 // Verify Meta webhook signature
 function verifyWebhookSignature(req) {
-    const secret = process.env.META_WEBHOOK_SECRET;
-    if (!secret) return true; // Skip verification if no secret configured
+    const appSecret = process.env.META_WEBHOOK_APP_SECRET || process.env.META_APP_SECRET || '';
+    if (!appSecret) return true; // Skip verification if app secret is not configured
     const signature = req.headers['x-hub-signature-256'];
     if (!signature) return false;
     const rawBody = JSON.stringify(req.body);
-    const expectedSignature = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    const expectedSignature = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
@@ -436,7 +437,11 @@ router.get('/bot/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-    const verifyToken = process.env.META_WEBHOOK_SECRET || 'salesagent_verify_123';
+    const verifyToken =
+        process.env.META_WEBHOOK_VERIFY_TOKEN ||
+        process.env.META_WA_WEBHOOK_VERIFY_TOKEN ||
+        process.env.META_WEBHOOK_SECRET ||
+        'salesagent_verify_123';
     if (mode === 'subscribe' && token === verifyToken) {
         console.log('✅ Sales Agent webhook verified');
         return res.status(200).send(challenge);

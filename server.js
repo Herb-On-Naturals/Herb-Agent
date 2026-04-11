@@ -322,11 +322,12 @@ cron.schedule('*/30 * * * *', async () => {
 
             // Try sending via WhatsApp
             try {
-                const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-                const token = process.env.META_ACCESS_TOKEN;
+                const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
+                const token = process.env.META_ACCESS_TOKEN || process.env.META_WA_ACCESS_TOKEN;
+                const apiVersion = process.env.META_WA_API_VERSION || ((process.env.META_WA_API_VERSIONS || 'v18.0').split(',')[0] || 'v18.0').trim();
                 if (phoneId && token) {
                     await axios.post(
-                        `https://graph.facebook.com/v18.0/${phoneId}/messages`,
+                        `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`,
                         { messaging_product: 'whatsapp', to: conv.phone, type: 'text', text: { body: message } },
                         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                     );
