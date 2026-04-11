@@ -451,15 +451,21 @@ function handleMetaWebhookVerify(req, res) {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
+    
     const verifyToken =
         process.env.META_WEBHOOK_VERIFY_TOKEN ||
         process.env.META_WA_WEBHOOK_VERIFY_TOKEN ||
         process.env.META_WEBHOOK_SECRET ||
         'salesagent_verify_123';
+
+    console.log(`🔍 Webhook Verification Attempt: Mode=${mode}, Token=${token}, Expected=${verifyToken}`);
+
     if (mode === 'subscribe' && token === verifyToken) {
-        console.log('Webhook verified');
+        console.log('✅ Webhook verified successfully');
         return res.status(200).send(challenge);
     }
+    
+    console.error(`❌ Webhook verification failed. Token mismatch or missing params.`);
     res.sendStatus(403);
 }
 
