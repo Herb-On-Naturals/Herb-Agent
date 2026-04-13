@@ -13,10 +13,44 @@ const GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}/${PHONE_NUMBER
 const START_TEMPLATE_NAME = sanitizeValue(process.env.META_WA_TEMPLATE_NAME_START || 'hello_world') || 'hello_world';
 const START_TEMPLATE_LANG = sanitizeValue(process.env.META_WA_TEMPLATE_LANG_START || 'en_US') || 'en_US';
 const ENFORCE_SIGNATURE = sanitizeValue(process.env.META_ENFORCE_SIGNATURE || 'false').toLowerCase() === 'true';
+const WEBSITE_BASE_URL = resolveWebsiteBaseUrl(
+    sanitizeValue(process.env.HERB_WEBSITE_URL || process.env.APP_URL || 'https://www.herbonnaturals.com')
+);
+const COMPANY_PROFILE = `
+Website: https://www.herbonnaturals.com/
+Brand: Herb On Naturals (Herbon Naturals)
+Positioning: Ayurvedic and natural wellness products
+Brand Promise:
+- Pure nature focused products
+- 100% natural ingredients
+- No toxins / chemical-free approach
+- Cruelty-free
+- Lab-tested quality
+Trust Signals Shared By Brand:
+- FSSAI standards
+- GMP certified manufacturing
+- Organic/natural ingredient focus
+- AYUSH-oriented wellness positioning
+Core Concern Categories:
+- Men's Health
+- Weight Management
+- Skin Care
+- Daily Wellness
+- Hair Care
+`.trim();
 
 function sanitizeValue(val) {
     if (typeof val !== 'string') return '';
     return val.trim().replace(/^['"]|['"]$/g, '');
+}
+
+function resolveWebsiteBaseUrl(input) {
+    try {
+        const parsed = new URL(input);
+        return `${parsed.protocol}//${parsed.host}`;
+    } catch (e) {
+        return 'https://www.herbonnaturals.com';
+    }
 }
 
 function normalizePhoneForWhatsApp(phone) {
@@ -35,28 +69,173 @@ function getMetaErrorSummary(err) {
     return parts.filter(Boolean).join(' | ');
 }
 
+function getProductWebsiteLink(product) {
+    const imageUrl = sanitizeValue(product.imageUrl || '');
+    if (imageUrl.startsWith('/')) {
+        return `${WEBSITE_BASE_URL}${imageUrl}`;
+    }
+    if (/^https?:\/\//i.test(imageUrl) && !/\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(imageUrl)) {
+        return imageUrl;
+    }
+    return `${WEBSITE_BASE_URL}/search?q=${encodeURIComponent(product.name || '')}`;
+}
+
+function inferProductUseCase(product) {
+    const name = (product.name || '').toLowerCase();
+    const tags = (product.tags || []).join(' ').toLowerCase();
+    const category = (product.category || '').toLowerCase();
+
+    if (name.includes('anti-dandruff') || tags.includes('dandruff')) {
+        return 'dandruff, itchy scalp aur scalp fungal issues support';
+    }
+    if (name.includes('hair oil') || tags.includes('hair') || category.includes('hair')) {
+        return 'hair fall support, scalp nourishment aur hair strength';
+    }
+    if (name.includes('shampoo')) {
+        return 'daily scalp cleansing, oil-control aur soft hair';
+    }
+    if (name.includes('conditioner')) {
+        return 'frizz control, detangling aur damaged hair nourishment';
+    }
+    if (name.includes('face wash')) {
+        return 'daily face cleansing, acne/oil-control support';
+    }
+    if (name.includes('face cream')) {
+        return 'skin hydration, glow support aur anti-aging care';
+    }
+    if (name.includes('body lotion')) {
+        return 'dry skin hydration aur body moisturization';
+    }
+    if (name.includes('aloe')) {
+        return 'skin soothing, cooling and multi-purpose skin/hair care';
+    }
+    if (category.includes('combo') || name.includes('kit')) {
+        return 'complete routine support for targeted care';
+    }
+    return 'general herbal wellness support as per product label';
+}
+
+function inferHowToUse(product) {
+    const name = (product.name || '').toLowerCase();
+    const category = (product.category || '').toLowerCase();
+
+    if (name.includes('oil')) return 'Scalp/target area par lagakar halka massage, phir label instructions follow karein.';
+    if (name.includes('shampoo') || name.includes('face wash')) return 'Pani se wet skin/hair par apply karke 30-60 sec gently massage karein, phir rinse karein.';
+    if (name.includes('conditioner')) return 'Shampoo ke baad lengths par lagayein, 2-3 min rakhkar rinse karein.';
+    if (name.includes('cream') || name.includes('lotion') || name.includes('gel')) return 'Clean skin par thin layer lagayein, day/night routine me label ke hisab se use karein.';
+    if (category.includes('combo') || name.includes('kit')) return 'Routine order follow karein: cleanser -> treatment -> moisturizer/oil, product label ke hisab se.';
+    return 'Product label pe diye gaye dosage/usage instructions ko follow karein.';
+}
+
+function buildPromptCatalog(products) {
+    if (!products || products.length === 0) {
+        return 'Catalog unavailable. User se concern lekar best available option suggest karo aur manual confirmation lo.';
+    }
+
+    return products.map((p) => {
+        const off = p.mrp ? Math.round((1 - p.price / p.mrp) * 100) : 0;
+        const benefits = (p.benefits || []).slice(0, 5).join(', ') || 'N/A';
+        const ingredients = p.ingredients || 'N/A';
+        return `• ${p.name} (${p.category || 'General'}) — ₹${p.price}${p.mrp ? ` (MRP ₹${p.mrp}, ${off}% off)` : ''} ${p.bestSeller ? '⭐' : ''}
+  Best for: ${inferProductUseCase(p)}
+  Benefits: ${benefits}
+  Ingredients: ${ingredients}
+  How to use: ${inferHowToUse(p)}
+  Website Link: ${getProductWebsiteLink(p)}`;
+    }).join('\n');
+}
+
+function isProductImageRequest(text) {
+    const t = (text || '').toLowerCase();
+    const asksImage = /(photo|image|pic|picture|img|dikhao|dikhaiye|show)/.test(t);
+    const hasProductHint = /(product|medicine|oil|shampoo|cream|lotion|gel|kit|hair|skin|dandruff|face|herb|herbon)/.test(t);
+    return asksImage && hasProductHint;
+}
+
+function scoreProductMatch(text, product) {
+    const t = (text || '').toLowerCase();
+    const fullName = (product.name || '').toLowerCase();
+    const strippedName = fullName
+        .replace(/\b(herb|herbon|on|naturals?)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    let score = 0;
+
+    if (fullName && t.includes(fullName)) score += 5;
+    if (strippedName && t.includes(strippedName)) score += 3;
+
+    const category = (product.category || '').toLowerCase();
+    if (category && t.includes(category.split(' ')[0])) score += 1;
+
+    for (const tag of product.tags || []) {
+        const tagText = String(tag || '').toLowerCase().trim();
+        if (tagText && t.includes(tagText)) score += 1;
+    }
+
+    for (const token of strippedName.split(' ').filter(x => x.length >= 4)) {
+        if (t.includes(token)) score += 1;
+    }
+
+    return score;
+}
+
+async function buildProductImageLinkReply(messageText) {
+    if (!isProductImageRequest(messageText)) return null;
+
+    const products = await Product.find({ isActive: true }).sort({ bestSeller: -1 });
+    if (!products.length) {
+        return 'Bilkul ji 🙂 Abhi catalog update ho raha hai. Aap concern batayein, main best option suggest kar deta hoon.\n\n[INTENT:QUESTION] [SENTIMENT:NEUTRAL]';
+    }
+
+    const ranked = products
+        .map((p) => ({ product: p, score: scoreProductMatch(messageText, p) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((x) => x.product);
+
+    const selected = (ranked.length > 0 ? ranked : products).slice(0, 3);
+    const lines = selected
+        .map((p, i) => `${i + 1}. ${p.name}: ${getProductWebsiteLink(p)}`)
+        .join('\n');
+
+    return `Bilkul ji 📸 Product links yeh rahe:\n${lines}\n\nAgar aap chahein to main inme se best option recommend bhi kar doon 🙂\n\n[INTENT:QUESTION] [SENTIMENT:POSITIVE]`;
+}
+
 // ==================== BUILD DYNAMIC SYSTEM PROMPT ====================
 async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) {
-    let prompt = `You are "Aaditya", a professional and knowledgeable Senior Health Consultant & Sales expert from Herbon Naturals.
-Your goal is to provide empathetic health advice and assist customers with reordering their natural herbal supplements via WhatsApp.
+    let prompt = `You are "Aaditya", a Senior Health Expert and customer consultant for Herb Agent at Herb On Naturals.
+Your job is to guide customers on product usage, solve wellness questions, and help them reorder confidently on WhatsApp.
 
-YOUR VOICE & PERSONALITY:
-- Language: Professional Hinglish (High-quality Hindi + English mix).
-- Tone: Empathetic, respectful (use "ji" and "aap"), and authoritative yet warm.
-- Style: Concise (2-3 lines per message). Use human fillers like "Bilkul...", "Achha...", "Theek hai...".
+BRAND KNOWLEDGE (SOURCE OF TRUTH):
+${COMPANY_PROFILE}
 
-PRODUCT EXPERTISE:
-You have deep knowledge of the following product catalog. Use this to answer usage questions or recommend items based on customer needs.
+VOICE, TONE, STYLE:
+- Professional Hinglish (clear Hindi + simple English)
+- Respectful and expert tone: always use "aap" and "ji"
+- Keep replies concise (2-4 short lines)
+- Add 1-3 relevant emojis naturally in each reply (avoid emoji spam)
+- Sound like a senior health expert, not a generic bot
+
+PRODUCT KNOWLEDGE (USE THIS ONLY):
 ${productCatalog}
 
-CORE RESPONSIBILITIES:
-1. FEEDBACK: Ask about the results of their previous order. Listen carefully to their health concerns.
-2. CONSULTATION: If they ask how to use a product or its benefits, give precise answers based on the catalog.
-3. REORDERING: If they are happy, suggest a reorder. 
-   CRITICAL: Before confirming any order, you MUST summarize the cart (Items, Quantity, Total Price) and ask the customer "Kya main ye order confirm kar doon?". Only use [INTENT:REORDER] AFTER the customer says "Yes" or "Theek hai" to this summary.
-4. ORDER MODIFICATION: If the customer wants to change items, add new ones, or change quantities, handle it professionally. 
-   CRITICAL: Whenever you modify the cart, you MUST include a JSON block at the end of your message in this format:
+HEALTH GUIDANCE RULES:
+1. If customer asks "ye kis cheez me use hota hai?" then explain:
+   - condition/use-case
+   - expected support/benefit
+   - simple usage guidance
+2. Never claim guaranteed cure or instant permanent result.
+3. For severe/persistent symptoms, politely suggest consulting a doctor.
+4. Stay truthful to known catalog details (benefits/ingredients/category/pricing).
+
+SALES & ORDER RULES:
+1. FEEDBACK: Ask about previous experience first.
+2. CONSULTATION: Recommend products based on concern + profile.
+3. REORDERING: Before final confirmation, always show cart summary (item, qty, total) and ask:
+   "Kya main ye order confirm kar doon?"
+4. ORDER MODIFICATION: If cart changes, append JSON exactly:
    [CART_UPDATE: {"items": [{"name": "Product Name", "quantity": 1, "price": 500}]}]
+5. Use [INTENT:REORDER] only after explicit customer confirmation.
 
 DYNAMIC CUSTOMER CONTEXT:
 ${customerProfile ? `
@@ -67,15 +246,12 @@ ${customerProfile ? `
 ` : ''}
 ${discountInfo ? `\nSPECIAL OFFER: ${discountInfo}` : ''}
 
-INTENT & SENTIMENT DETECTION:
-You MUST end every message with an Intent and Sentiment tag in brackets.
-- [INTENT:REORDER] - Customer confirmed they want to order (e.g., "bhej do", "order confirm").
-- [INTENT:MODIFY_ORDER] - Customer wants to change items, quantity, or add something new.
-- [INTENT:QUESTION] - Customer is asking about product usage, price, or health.
-- [INTENT:INTERESTED] - Customer shows general interest but hasn't confirmed yet.
-- [INTENT:NOT_INTERESTED] - Customer declined or said "no".
+INTENT & SENTIMENT TAGS (MANDATORY IN EVERY REPLY):
+- [INTENT:REORDER] | [INTENT:MODIFY_ORDER] | [INTENT:QUESTION] | [INTENT:INTERESTED] | [INTENT:NOT_INTERESTED]
+- [SENTIMENT:POSITIVE] | [SENTIMENT:NEUTRAL] | [SENTIMENT:NEGATIVE]
 
-Format: "Aapka message... [INTENT:XXX] [SENTIMENT:YYY]"`;
+Output format:
+"Aapka visible reply with emojis... [INTENT:XXX] [SENTIMENT:YYY]"`;
 
     return prompt;
 }
@@ -330,7 +506,7 @@ router.post('/bot/start', async (req, res) => {
         const discount = calculateDiscount(profile);
 
         // Build dynamic system prompt
-        const systemPrompt = await buildSystemPrompt(profile, catalogStr, discount.discountMsg);
+        const systemPrompt = await buildSystemPrompt(profile, buildPromptCatalog(products), discount.discountMsg);
 
         // Build initial message
         const items = (order.items || []).map(i => i.description || i.treatment || 'Product').join(', ');
@@ -550,7 +726,7 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
         }).join('\n');
 
         const discount = calculateDiscount(profile);
-        const systemPrompt = await buildSystemPrompt(profile, catalogStr, discount.discountMsg);
+        const systemPrompt = await buildSystemPrompt(profile, buildPromptCatalog(products), discount.discountMsg);
 
         conv = await Conversation.create({
             phone: cleanPhone,
@@ -578,9 +754,12 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
     // Cancel pending follow-up (customer replied!)
     conv.followUpAt = null;
 
+    // If customer asks for product image/photo, return website product links directly.
+    const imageLinkReply = await buildProductImageLinkReply(messageText);
+
     // Get AI response
     const aiMessages = conv.messages.map(m => ({ role: m.role, content: m.content }));
-    const aiResponse = await getAIResponse(aiMessages);
+    const aiResponse = imageLinkReply ? { content: imageLinkReply } : await getAIResponse(aiMessages);
     const responseText = aiResponse.content || 'Ji, main samajh gaya.';
     const intent = extractIntent(responseText);
     const sentiment = extractSentiment(responseText);
