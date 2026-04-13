@@ -250,7 +250,7 @@ app.use('/api', followupRoutes);
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
-        service: 'Herbon Sales Agent',
+        service: 'Herb Agent',
         db: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
         timestamp: new Date().toISOString()
     });
@@ -391,7 +391,7 @@ async function start() {
     const dbOk = await connectDB();
     app.listen(PORT, '0.0.0.0', () => {
         console.log('╔══════════════════════════════════════════════╗');
-        console.log('║    🤖 HERBON SALES AGENT STARTED 🤖          ║');
+        console.log('║    🤖 HERB AGENT STARTED 🤖                  ║');
         console.log(`║    Port: ${PORT}                                  ║`);
         console.log(`║    DB:   ${dbOk ? '🟢 Connected' : '🔴 Disconnected'}                  ║`);
         console.log(`║    Mode: ${process.env.BLAND_AI_API_KEY ? '🟢 Live' : '🟡 Mock (No API Key)'}              ║`);

@@ -1,14 +1,14 @@
 {
-  "name": "herbon-sales-agent",
+  "name": "herb-agent",
   "version": "1.1.0",
-  "description": "Herbon Naturals - AI Sales Agent for Reordering",
+  "description": "Herb Agent - AI Reordering Assistant",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "npx nodemon server.js",
     "prod": "pm2 start ecosystem.config.js --env production",
-    "stop": "pm2 stop herbon-agent",
-    "logs": "pm2 logs herbon-agent"
+    "stop": "pm2 stop herb-agent",
+    "logs": "pm2 logs herb-agent"
   },
   "engines": {
     "node": "20.x"

@@ -1,4 +1,4 @@
-// ==================== HERBON SALES AGENT — DASHBOARD JS ====================
+// ==================== HERB AGENT — DASHBOARD JS ====================
 
 const API = '';
 let currentPage = 1;
@@ -1002,7 +1002,7 @@ async function openChat(convId) {
             const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
             return `
                 <div class="chat-bubble ${isBot ? 'bot' : 'user'}">
-                    <div class="bubble-label">${isBot ? '🤖 Herbon AI' : '👤 Customer'}</div>
+                    <div class="bubble-label">${isBot ? '🤖 Herb Agent AI' : '👤 Customer'}</div>
                     <div>${m.content}</div>
                     <div class="bubble-time">${timeStr}</div>
                 </div>`;
@@ -1042,7 +1042,7 @@ async function simulateReply() {
     thread.scrollTop = thread.scrollHeight;
 
     // Add typing indicator
-    thread.innerHTML += `<div class="chat-bubble bot" id="typingBubble"><div class="bubble-label">🤖 Herbon AI</div><div>⏳ Typing...</div></div>`;
+    thread.innerHTML += `<div class="chat-bubble bot" id="typingBubble"><div class="bubble-label">🤖 Herb Agent AI</div><div>⏳ Typing...</div></div>`;
     thread.scrollTop = thread.scrollHeight;
 
     try {
@@ -1059,7 +1059,7 @@ async function simulateReply() {
         if (data.success) {
             thread.innerHTML += `
                 <div class="chat-bubble bot">
-                    <div class="bubble-label">🤖 Herbon AI</div>
+                    <div class="bubble-label">🤖 Herb Agent AI</div>
                     <div>${data.reply}</div>
                     <div class="bubble-time">Just now · Intent: ${data.intent}</div>
                 </div>`;
@@ -1371,7 +1371,7 @@ async function loadAnalytics() {
 
 async function seedProducts() {
     try {
-        showToast('🌿 Seeding Herbon products...', 'info');
+        showToast('🌿 Seeding Herb Agent product catalog...', 'info');
         const res = await fetch(`${API}/api/products/seed`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
