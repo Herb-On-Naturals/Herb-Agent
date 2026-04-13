@@ -22,6 +22,8 @@ Website: https://www.herbonnaturals.com/
 Tagline: "Pure Nature, Pure Wellness"
 Type: Premium Ayurvedic & Natural Wellness Company
 
+Helpline Numbers: 99117 99660, 99117 99116 (Available for health consultation)
+
 Brand Certifications:
 - FSSAI Approved
 - GMP Certified Manufacturing
@@ -155,26 +157,41 @@ async function buildProductImageLinkReply(messageText, conv) {
 
 // ==================== PROMPT BUILDER ====================
 async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) {
-    let prompt = `Tu hai "Aaditya" — Herb On Naturals ka Senior Ayurvedic Expert. 
-🚨 RULES:
-1. CHHOTA LIKH (Max 2-3 lines).
-2. EMOJI 1-3 use kar naturally.
-3. Warm professional Hinglish (ji/aap).
-4. Price/Size hamesha batao.
+    let prompt = `Tu hai "Aaditya" — Herb On Naturals ka Senior Ayurvedic Health Expert. Tu WhatsApp pe customers se baat karta hai.
+    
+🚨 GOLDEN RULES:
+1. CHHOTA LIKH — Max 2-3 lines per response.
+2. EMOJI — 1-3 emojis naturally use kar (🌿💪✨).
+3. HINGLISH — Natural Mix of Hindi & simple English (ji/aap use kar).
+4. SALES FOCUS — Pehle concern samajh, phir product recommend kar price aur size ke saath.
 
-BRAND: ${COMPANY_PROFILE}
-CATALOG: ${productCatalog}
+BRAND INFO:
+${COMPANY_PROFILE}
 
-CONCERN MAPPING:
-- Joint pain → Paingesic Oil ₹799 + Pain Over ₹960
-- Varicose → Vena-V ₹1599 / Naskhol ₹1990
-- Stamina → Shilajit ₹1499 / Gold Vitality ₹1299
-- Weight loss → Weight Manage ₹960 / SHAPE ₹3300
+PRODUCT CATALOG:
+${productCatalog}
 
-CUSTOMER: ${customerProfile ? customerProfile.customerName : 'New lead'}
-${discountInfo ? `OFFER: ${discountInfo}` : ''}
+CONCERN → PRODUCT MAPPING:
+- Joint pain/Arthritis → Paingesic Oil ₹799 + Pain Over ₹960 (Combo best result)
+- Varicose veins/Spider veins → Vena-V ₹1599 / Naskhol ₹1990 / Nadi Yog ₹1460
+- Men stamina/Weakness → Shilajit ₹1499 / Gold Vitality ₹1299
+- Weight loss/Charbi → Weight Manage ₹960 / SHAPE ₹3300
+- Nerve numbness/Nadi issue → Nadi Yog ₹1460
 
-Format reply with [INTENT:XXX] [SENTIMENT:YYY] tags.`;
+CUSTOMER INFO:
+${customerProfile ? `- Naam: ${customerProfile.customerName}\n- Segment: ${customerProfile.segment}` : '- New Customer'}
+${discountInfo ? `🎁 CURRENT OFFER: ${discountInfo}` : ''}
+
+INTENT TAGS (HAR REPLY MEIN LAGAO):
+- [INTENT:REORDER] — Use ONLY when customer explicitly says "YES", "confirm", "order bhej do", "confirm kar do". This triggers auto-order.
+- [INTENT:QUESTION] — Use for health queries or product info.
+- [INTENT:INTERESTED] — Use when user shows general interest but hasn't confirmed yet.
+- [INTENT:NOT_INTERESTED] — Use if user says no.
+- [INTENT:MODIFY_ORDER] — Use if user wants to change quantity or items.
+
+SENTIMENT TAGS: [SENTIMENT:POSITIVE], [SENTIMENT:NEUTRAL], [SENTIMENT:NEGATIVE]
+
+EXAMPLE: "Ji bilkul! 🌿 Varicose veins ke liye Vena-V Capsules best hain (₹1599, 60 caps). Kya main aapka order confirm kar doon? 😊 [INTENT:INTERESTED] [SENTIMENT:POSITIVE]"`;
     return prompt;
 }
 
@@ -358,11 +375,26 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
 }
 
 async function createAutoReorder(conv) {
-    const originalOrder = conv.originalOrderMongoId ? await Order.findById(conv.originalOrderMongoId) : null;
+    const cleanPhone = conv.phone.replace(/\D/g, '').slice(-10);
+    
+    // 1. Try to find original order (either via MongoId or by searching phone)
+    let originalOrder = conv.originalOrderMongoId ? await Order.findById(conv.originalOrderMongoId) : null;
+    
+    if (!originalOrder) {
+        // Search for ANY previous delivered order for this customer
+        originalOrder = await Order.findOne({
+            $or: [
+                { mobile: { $regex: cleanPhone } },
+                { telNo: { $regex: cleanPhone } }
+            ]
+        }).sort({ createdAt: -1 });
+    }
+
     const newOrderId = 'WABOT-' + Date.now();
     const now = new Date().toISOString();
+    const isReturningCustomer = originalOrder ? true : false;
 
-    // Default to a sample product if no history (should ideally come from AI extraction)
+    // Default items or history-based items
     let items = originalOrder?.items || [{ description: 'Ayurvedic Wellness Pack', quantity: 1, price: 999, rate: 999, amount: 999 }];
     let total = items.reduce((sum, i) => sum + i.amount, 0);
 
@@ -375,11 +407,18 @@ async function createAutoReorder(conv) {
         customerName: conv.customerName,
         mobile: conv.phone,
         address: originalOrder?.address || 'Address requested via chat',
+        city: originalOrder?.city || '',
         state: originalOrder?.state || 'N/A',
         total: total,
         codAmount: total,
         items: items,
-        status: 'Pending'
+        orderType: isReturningCustomer ? 'WhatsApp AI Reorder' : 'WhatsApp AI New Lead',
+        status: 'Pending',
+        remarks: [{
+            text: `Order created via WhatsApp AI Bot. Type: ${isReturningCustomer ? 'Reorder' : 'New Lead'}`,
+            addedBy: 'WhatsApp AI Bot',
+            addedAt: now
+        }]
     });
     await newOrder.save();
 
@@ -391,10 +430,13 @@ async function createAutoReorder(conv) {
         mobile: conv.phone,
         items: items,
         total: total,
-        source: 'WhatsApp AI'
+        source: isReturningCustomer ? 'WhatsApp AI' : 'WhatsApp',
+        status: 'Created'
     });
 
-    return { success: true, newOrderId, total };
+    console.log(`📦 Automated ${isReturningCustomer ? 'Reorder' : 'New Order'} created for ${conv.customerName} (${conv.phone})`);
+
+    return { success: true, newOrderId, total, isReturningCustomer };
 }
 
 // ==================== SIMULATE ====================
