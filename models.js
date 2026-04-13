@@ -168,12 +168,15 @@ const productSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     mrp: Number,
     description: String,
-    benefits: [String],             // ["Chemical-free", "Herbal", "Natural"]
+    benefits: [String],             // ["Immunity booster", "Pain relief", etc.]
     ingredients: String,
     imageUrl: String,
     isActive: { type: Boolean, default: true },
     bestSeller: { type: Boolean, default: false },
-    tags: [String]                  // ["hair", "skin", "wellness"]
+    tags: [String],                 // ["heart-care", "varicose", "capsule"]
+    size: String,                   // "60 Capsules", "100ml", "500g"
+    usage: String,                  // Dosage/how-to-use instructions in Hinglish
+    idealFor: String                // Target conditions/use-cases
 }, { timestamps: true, collection: 'agent_products' });
 
 // ==================== CUSTOMER PROFILE SCHEMA ====================
