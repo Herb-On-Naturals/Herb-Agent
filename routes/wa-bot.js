@@ -147,9 +147,7 @@ function buildPromptCatalog(products) {
 
 function isProductImageRequest(text) {
     const t = (text || '').toLowerCase();
-    const asksImage = /(photo|image|pic|picture|img|dikhao|dikhaiye|show)/.test(t);
-    const hasProductHint = /(product|medicine|oil|shampoo|cream|lotion|gel|kit|hair|skin|dandruff|face|herb|herbon)/.test(t);
-    return asksImage && hasProductHint;
+    return /(photo|image|pic|picture|img|dikhao|dikhaiye|show|link|photo bhejo|img bhej)/.test(t);
 }
 
 function scoreProductMatch(text, product) {
@@ -179,7 +177,16 @@ function scoreProductMatch(text, product) {
     return score;
 }
 
-async function buildProductImageLinkReply(messageText) {
+function buildImageRequestContextText(messageText, conv) {
+    const recentUserMessages = (conv?.messages || [])
+        .filter((m) => m.role === 'user')
+        .slice(-4)
+        .map((m) => m.content || '')
+        .join(' ');
+    return `${recentUserMessages} ${messageText || ''}`.trim();
+}
+
+async function buildProductImageLinkReply(messageText, conv) {
     if (!isProductImageRequest(messageText)) return null;
 
     const products = await Product.find({ isActive: true }).sort({ bestSeller: -1 });
@@ -187,8 +194,9 @@ async function buildProductImageLinkReply(messageText) {
         return 'Bilkul ji 🙂 Abhi catalog update ho raha hai. Aap concern batayein, main best option suggest kar deta hoon.\n\n[INTENT:QUESTION] [SENTIMENT:NEUTRAL]';
     }
 
+    const contextText = buildImageRequestContextText(messageText, conv);
     const ranked = products
-        .map((p) => ({ product: p, score: scoreProductMatch(messageText, p) }))
+        .map((p) => ({ product: p, score: scoreProductMatch(contextText, p) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
         .map((x) => x.product);
@@ -755,7 +763,7 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
     conv.followUpAt = null;
 
     // If customer asks for product image/photo, return website product links directly.
-    const imageLinkReply = await buildProductImageLinkReply(messageText);
+    const imageLinkReply = await buildProductImageLinkReply(messageText, conv);
 
     // Get AI response
     const aiMessages = conv.messages.map(m => ({ role: m.role, content: m.content }));
