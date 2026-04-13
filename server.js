@@ -98,7 +98,7 @@ app.use(cors({
 // Session Setup — with MongoDB store (no memory leak)
 let sessionStoreLabel = 'MemoryStore';
 const sessionConfig = {
-    secret: process.env.SECRET_KEY || 'change-this-in-production',
+    secret: process.env.SECRET_KEY || process.env.JWT_SECRET || 'change-this-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -178,7 +178,7 @@ function normalizeSecret(value) {
 
 app.post('/api/auth/login', authLimiter, (req, res) => {
     const { password } = req.body;
-    const adminPass = normalizeSecret(process.env.ADMIN_PASSWORD);
+    const adminPass = normalizeSecret(process.env.ADMIN_PASSWORD || process.env.ADMIN_SECRET);
     const enteredPass = normalizeSecret(password);
 
     if (!enteredPass) {
@@ -188,7 +188,7 @@ app.post('/api/auth/login', authLimiter, (req, res) => {
     if (!adminPass) {
         return res.status(500).json({
             success: false,
-            message: 'ADMIN_PASSWORD is not configured on server. Set env var and redeploy.'
+            message: 'ADMIN_PASSWORD (or ADMIN_SECRET) is not configured on server. Set env var and redeploy.'
         });
     }
 
