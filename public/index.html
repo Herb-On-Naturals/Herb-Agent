@@ -86,7 +86,8 @@
     <!-- ===== TAB NAV ===== -->
     <nav class="tab-nav">
         <button class="tab-btn active" data-tab="orders">📦 Delivered Orders</button>
-        <button class="tab-btn" data-tab="whatsapp">💬 WhatsApp</button>
+        <button class="tab-btn" data-tab="chat">💬 WhatsApp Chat</button>
+        <button class="tab-btn" data-tab="broadcast">📤 Broadcast</button>
         <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
         <button class="tab-btn" data-tab="campaigns">📢 Campaigns</button>
         <button class="tab-btn" data-tab="logs">📞 Call Logs</button>
@@ -133,11 +134,11 @@
         </div>
     </section>
 
-    <!-- ===== TAB: WHATSAPP ===== -->
-    <section class="tab-content" id="tab-whatsapp">
+    <!-- ===== TAB: BROADCAST ===== -->
+    <section class="tab-content" id="tab-broadcast">
         <div class="panel">
             <div class="panel-header">
-                <h2>💬 WhatsApp Messaging</h2>
+                <h2>📤 WhatsApp Broadcast</h2>
                 <div class="panel-actions">
                     <span class="wa-status" id="waStatus">⏳ Checking...</span>
                     <button class="btn btn-success" id="btnBulkWA" disabled>📤 Bulk Send to Selected</button>
@@ -183,10 +184,15 @@
                 </table>
             </div>
             <div class="pagination" id="waOrdersPagination"></div>
+        </div>
+    </section>
 
+    <!-- ===== TAB: CHAT ===== -->
+    <section class="tab-content" id="tab-chat">
+        <div class="panel">
             <!-- ===== BOT CONVERSATIONS: WhatsApp-Style Layout ===== -->
-            <div class="panel-header" style="margin-top:24px">
-                <h2>🤖 AI Bot Conversations</h2>
+            <div class="panel-header">
+                <h2>💬 WhatsApp Chat</h2>
                 <button class="btn btn-outline" id="btnRefreshConvs">🔄 Refresh</button>
             </div>
             <div class="chat-layout">
@@ -384,9 +390,16 @@
                         <option value="Lost">Lost</option>
                     </select>
                     <button class="btn btn-outline" id="btnFilterLeads">🔍 Filter</button>
+                    
+                    <div class="view-toggle" style="display:flex; gap:8px; margin-left:16px;">
+                        <button class="btn btn-outline btn-sm active" id="btnViewTable">📋 Table</button>
+                        <button class="btn btn-outline btn-sm" id="btnViewKanban">📊 Kanban</button>
+                    </div>
                 </div>
             </div>
-            <div class="table-wrap">
+            
+            <!-- Table View -->
+            <div class="table-wrap" id="leadsTableWrap">
                 <table class="data-table" id="leadsTable">
                     <thead>
                         <tr>
@@ -404,6 +417,30 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Kanban View -->
+            <div class="kanban-board" id="leadsKanban" style="display:none;">
+                <div class="kanban-column" data-status="New">
+                    <div class="kanban-column-header">New</div>
+                    <div class="kanban-cards" id="cards-New"></div>
+                </div>
+                <div class="kanban-column" data-status="Contacted">
+                    <div class="kanban-column-header">Contacted</div>
+                    <div class="kanban-cards" id="cards-Contacted"></div>
+                </div>
+                <div class="kanban-column" data-status="Interested">
+                    <div class="kanban-column-header">Interested</div>
+                    <div class="kanban-cards" id="cards-Interested"></div>
+                </div>
+                <div class="kanban-column" data-status="Won">
+                    <div class="kanban-column-header">Won</div>
+                    <div class="kanban-cards" id="cards-Won"></div>
+                </div>
+                <div class="kanban-column" data-status="Lost">
+                    <div class="kanban-column-header">Lost</div>
+                    <div class="kanban-cards" id="cards-Lost"></div>
+                </div>
             </div>
         </div>
     </section>

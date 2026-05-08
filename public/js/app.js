@@ -123,6 +123,8 @@ function initTabs() {
             if (btn.dataset.tab === 'logs') loadCallLogs();
             if (btn.dataset.tab === 'reorders') loadReorderHistory();
             if (btn.dataset.tab === 'leads') loadLeads();
+            if (btn.dataset.tab === 'broadcast') initWhatsApp();
+            if (btn.dataset.tab === 'chat') loadConversations();
         });
     });
 }
@@ -172,6 +174,22 @@ function initEventListeners() {
     document.getElementById('btnFilterLeads')?.addEventListener('click', loadLeads);
     document.getElementById('leadSearch')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') loadLeads();
+    });
+
+    // Leads view toggle
+    document.getElementById('btnViewTable')?.addEventListener('click', () => {
+        document.getElementById('leadsTableWrap').style.display = 'block';
+        document.getElementById('leadsKanban').style.display = 'none';
+        document.getElementById('btnViewTable').classList.add('active');
+        document.getElementById('btnViewKanban').classList.remove('active');
+        loadLeads();
+    });
+    document.getElementById('btnViewKanban')?.addEventListener('click', () => {
+        document.getElementById('leadsTableWrap').style.display = 'none';
+        document.getElementById('leadsKanban').style.display = 'grid';
+        document.getElementById('btnViewTable').classList.remove('active');
+        document.getElementById('btnViewKanban').classList.add('active');
+        loadLeads();
     });
 }
 
@@ -759,11 +777,10 @@ async function loadReorderHistory() {
 
 // ==================== LEADS (CRM) ====================
 async function loadLeads() {
-    const tbody = document.getElementById('leadsBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">⏳ Loading leads...</td></tr>';
-
     const search = document.getElementById('leadSearch')?.value || '';
     const status = document.getElementById('leadStatusFilter')?.value || '';
+
+    const isKanban = document.getElementById('btnViewKanban')?.classList.contains('active');
 
     try {
         const params = new URLSearchParams({ search, status });
@@ -771,32 +788,124 @@ async function loadLeads() {
         const data = await res.json();
 
         if (!data.success || !data.leads.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">No leads found</td></tr>';
+            if (isKanban) {
+                ['New', 'Contacted', 'Interested', 'Won', 'Lost'].forEach(s => {
+                    document.getElementById(`cards-${s}`).innerHTML = '';
+                });
+            } else {
+                document.getElementById('leadsBody').innerHTML = '<tr><td colspan="6" class="loading-cell">No leads found</td></tr>';
+            }
             return;
         }
 
-        const statusColors = { New: '#667eea', Contacted: '#f59e0b', Interested: '#10b981', Won: '#10b981', Lost: '#ef4444' };
-
-        tbody.innerHTML = data.leads.map(l => {
-            const statusColor = statusColors[l.leadStatus] || '#94a3b8';
-            const sentimentEmoji = l.lastSentiment === 'positive' ? '😊' : l.lastSentiment === 'negative' ? '😞' : '😐';
-            return `<tr>
-                <td><strong>${l.customerName || 'N/A'}</strong></td>
-                <td class="mobile-cell">${l.phone}</td>
-                <td>
-                    <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${statusColor}22;color:${statusColor}">${l.leadStatus}</span>
-                </td>
-                <td style="font-size:18px;text-align:center">${sentimentEmoji}</td>
-                <td><span class="text-truncate" title="${l.notes || ''}">${l.notes || '—'}</span></td>
-                <td>
-                    <button class="btn btn-outline btn-sm" onclick="updateLeadStatus('${l.phone}')">⚙️ Status</button>
-                    <button class="btn btn-outline btn-sm" onclick="addLeadNote('${l.phone}')">📝 Note</button>
-                </td>
-            </tr>`;
-        }).join('');
+        if (isKanban) {
+            renderKanban(data.leads);
+        } else {
+            renderTable(data.leads);
+        }
     } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">❌ Error loading leads</td></tr>';
+        console.error('Load leads error:', err);
     }
+}
+
+function renderTable(leads) {
+    const tbody = document.getElementById('leadsBody');
+    const statusColors = { New: '#667eea', Contacted: '#f59e0b', Interested: '#10b981', Won: '#10b981', Lost: '#ef4444' };
+
+    tbody.innerHTML = leads.map(l => {
+        const statusColor = statusColors[l.leadStatus] || '#94a3b8';
+        const sentimentEmoji = l.lastSentiment === 'positive' ? '😊' : l.lastSentiment === 'negative' ? '😞' : '😐';
+        return `<tr>
+            <td><strong>${l.customerName || 'N/A'}</strong></td>
+            <td class="mobile-cell">${l.phone}</td>
+            <td>
+                <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${statusColor}22;color:${statusColor}">${l.leadStatus}</span>
+            </td>
+            <td style="font-size:18px;text-align:center">${sentimentEmoji}</td>
+            <td><span class="text-truncate" title="${l.notes || ''}">${l.notes || '—'}</span></td>
+            <td>
+                <button class="btn btn-outline btn-sm" onclick="updateLeadStatus('${l.phone}')">⚙️ Status</button>
+                <button class="btn btn-outline btn-sm" onclick="addLeadNote('${l.phone}')">📝 Note</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function renderKanban(leads) {
+    const statuses = ['New', 'Contacted', 'Interested', 'Won', 'Lost'];
+    
+    // Clear columns
+    statuses.forEach(s => {
+        document.getElementById(`cards-${s}`).innerHTML = '';
+    });
+
+    const sentimentEmojis = { positive: '😊', neutral: '😐', negative: '😞' };
+
+    leads.forEach(l => {
+        const column = document.getElementById(`cards-${l.leadStatus}`);
+        if (!column) return;
+
+        const emoji = sentimentEmojis[l.lastSentiment] || '😐';
+        const card = document.createElement('div');
+        card.className = 'kanban-card';
+        card.draggable = true;
+        card.dataset.phone = l.phone;
+        
+        card.innerHTML = `
+            <div class="kanban-card-title">${l.customerName || 'N/A'}</div>
+            <div class="kanban-card-sub">${l.phone}</div>
+            <div class="kanban-card-tags">
+                <span class="kanban-card-tag">${emoji}</span>
+                ${l.notes ? `<span class="kanban-card-tag text-truncate" style="max-width:100px;">${l.notes}</span>` : ''}
+            </div>
+        `;
+
+        // Drag events
+        card.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', l.phone);
+            card.style.opacity = '0.5';
+        });
+        card.addEventListener('dragend', () => {
+            card.style.opacity = '1';
+        });
+
+        column.appendChild(card);
+    });
+
+    // Add drop events to columns
+    statuses.forEach(s => {
+        const col = document.getElementById(`cards-${s}`);
+        col.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            col.style.background = 'rgba(16, 185, 129, 0.05)';
+        });
+        col.addEventListener('dragleave', () => {
+            col.style.background = '';
+        });
+        col.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            col.style.background = '';
+            const phone = e.dataTransfer.getData('text/plain');
+            
+            // Update status via API
+            try {
+                const res = await fetch(`${API}/api/leads/${phone}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: s })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Lead status updated to ${s}`, 'success');
+                    loadLeads(); // Reload to refresh view
+                } else {
+                    showToast('Error updating status', 'error');
+                }
+            } catch (err) {
+                showToast('Error updating status', 'error');
+            }
+        });
+    });
 }
 
 async function updateLeadStatus(phone) {
@@ -868,8 +977,12 @@ function showToast(message, type = 'info') {
 let waTemplates = [];
 let waPage = 1;
 let waSelected = new Set();
+let waInitialized = false;
 
 async function initWhatsApp() {
+    if (waInitialized) return;
+    waInitialized = true;
+
     // Check WA status
     try {
         const res = await fetch(`${API}/api/whatsapp/status`);
@@ -1026,8 +1139,6 @@ async function bulkSendWA() {
 
 // Init WhatsApp on load
 document.addEventListener('DOMContentLoaded', () => {
-    initWhatsApp();
-    loadConversations();
     initChatEvents();
 });
 
