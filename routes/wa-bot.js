@@ -262,7 +262,24 @@ async function getAIResponse(messages) {
 
 function extractIntent(text) {
     const match = text.match(/\[INTENT:(\w+)\]/);
-    return match ? match[1] : 'QUESTION';
+    if (match) return match[1];
+    
+    // Fallback parsing if AI forgets to include the tag
+    const t = (text || '').toLowerCase();
+    if (t.includes('confirm') || t.includes('bhej diya') || t.includes('book kar') || t.includes('order id')) {
+        return 'REORDER';
+    }
+    if (t.includes('interested') || t.includes('le sakte hain') || t.includes('try karein')) {
+        return 'INTERESTED';
+    }
+    if (t.includes('nahi chahiye') || t.includes('no thanks')) {
+        return 'NOT_INTERESTED';
+    }
+    if (t.includes('modify') || t.includes('change') || t.includes('badal')) {
+        return 'MODIFY_ORDER';
+    }
+    
+    return 'QUESTION';
 }
 
 function extractSentiment(text) {
@@ -306,6 +323,36 @@ router.get('/bot/webhook', handleMetaWebhookVerify);
 
 async function handleMetaWebhookPost(req, res) {
     const body = req.body;
+    
+    // Webhook Signature Verification
+    const signature = req.headers['x-hub-signature-256'];
+    const appSecret = process.env.META_WEBHOOK_APP_SECRET;
+    
+    if (ENFORCE_SIGNATURE || signature) {
+        if (!signature) {
+            console.warn('⚠️ [WEBHOOK] Missing X-Hub-Signature-256 header');
+            return res.status(401).send('Signature missing');
+        }
+        if (!appSecret) {
+            console.warn('⚠️ [WEBHOOK] META_WEBHOOK_APP_SECRET not configured on server');
+            if (ENFORCE_SIGNATURE) {
+                return res.status(500).send('Webhook secret not configured');
+            }
+        } else {
+            const elements = signature.split('=');
+            const signatureHash = elements[1];
+            const expectedHash = crypto
+                .createHmac('sha256', appSecret)
+                .update(req.rawBody || '')
+                .digest('hex');
+                
+            if (signatureHash !== expectedHash) {
+                console.warn('❌ [WEBHOOK] Signature verification failed');
+                return res.status(401).send('Signature verification failed');
+            }
+        }
+    }
+
     if (body.object === 'whatsapp_business_account') {
         for (const entry of body.entry) {
             for (const change of entry.changes) {

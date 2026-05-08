@@ -340,6 +340,31 @@ async function createCallReorder(order, customerName, mobile, discount) {
 // ==================== BLAND AI WEBHOOK ====================
 router.post('/agent/webhook', async (req, res) => {
     try {
+        // Webhook Signature Verification
+        const signature = req.headers['x-webhook-signature'];
+        const secret = process.env.BLAND_WEBHOOK_SECRET;
+
+        if (secret || signature) {
+            if (!signature) {
+                console.warn('⚠️ [WEBHOOK] Missing X-Webhook-Signature header');
+                return res.status(401).json({ error: 'Signature missing' });
+            }
+            if (!secret) {
+                console.warn('⚠️ [WEBHOOK] BLAND_WEBHOOK_SECRET not configured on server');
+            } else {
+                const crypto = require('crypto');
+                const expectedHash = crypto
+                    .createHmac('sha256', secret)
+                    .update(req.rawBody || '')
+                    .digest('hex');
+                    
+                if (signature !== expectedHash) {
+                    console.warn('❌ [WEBHOOK] Bland AI Signature verification failed');
+                    return res.status(401).json({ error: 'Signature verification failed' });
+                }
+            }
+        }
+
         const data = req.body;
         const blandCallId = data.call_id;
 
@@ -349,12 +374,23 @@ router.post('/agent/webhook', async (req, res) => {
 
         // Enhanced result detection with more Hindi/Hinglish keywords
         let result = 'Not Interested';
-        if (transcript.match(/haan|yes|order|bhej do|bhejo|chahiye|karwa do|kar do|same bhej/)) {
+        
+        // 1. Check for explicit reorder confirmation (stricter to avoid false positives)
+        if (transcript.match(/confirm kar do|haan bhej do|order kar do|bhej dijiye|yes confirm|confirm it|same order bhej/)) {
             result = 'Reordered';
-        } else if (transcript.match(/baad mein|later|kal|kisi aur din|abhi nahi|busy/)) {
+        } 
+        // 2. Check for callback request
+        else if (transcript.match(/baad mein|later|kal|kisi aur din|abhi nahi|busy|call back/)) {
             result = 'Callback';
-        } else if (transcript.match(/interested|sochenge|batata|bataenge|dekhte|consider/)) {
-            result = 'Interested';
+        } 
+        // 3. Check for interest but not confirmation
+        else if (transcript.match(/interested|sochenge|batata|bataenge|dekhte|consider|achha hai|chahiye/)) {
+            // Check if "chahiye" is negative
+            if (transcript.match(/nahi chahiye|mat chahiye|no chahiye/)) {
+                result = 'Not Interested';
+            } else {
+                result = 'Interested';
+            }
         }
 
         // Sentiment detection
