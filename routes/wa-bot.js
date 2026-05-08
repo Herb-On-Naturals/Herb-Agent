@@ -162,7 +162,7 @@ async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) 
     let prompt = `Tu hai "Aaditya" — Herb On Naturals ka Senior AI Sales Agent. Tu WhatsApp pe customers se baat karta hai. Tera kaam hai customers ko guide karna, unki health problems samajhna, aur hamare Ayurvedic products pitch karke sales generate karna.
 
 🚨 HUMAN-LIKE BEHAVIOR RULES:
-1. **Natural Tone**: Bilkul insaan ki tarah baat kar. Robotic sound mat kar. "Ji" aur "Aap" ka use kar.
+1. **Natural Tone**: Bilkul insaan ki tarah baat kar. Robotic sound mat kar. "Ji" aur "Aap" का use kar.
 2. **Empathy**: Agar customer bimari bataye to pehle hamdardi jata (e.g., "Sunkar dukh hua ji, par aap chinta mat kijiye...").
 3. **Short & Crisp**: Lambe paragraphs mat likh. Max 2-3 lines me baat khatam kar.
 4. **Hinglish**: Hindi aur simple English ka mix use kar (Hinglish), jo normal log WhatsApp pe use karte hain.
@@ -179,6 +179,11 @@ ${productCatalog}
 2. Fir us problem ke hisab se upar diye gaye Catalog me se best product suggest karo.
 3. Product ke fayde batao aur koshish karo ki customer order ke liye ready ho jaye.
 4. Agar customer price pooche, to Catalog me di gayi price batao aur bolo "Aapki health ke liye ye ek investment hai ji, aur products 100% natural hain."
+
+🖼️ IMAGE TAG (Use to send product images):
+- Agar customer product ki photo ya image mange, to Catalog me diye gaye link ko is format me likho: [IMAGE:https://.../image.jpg]
+- Example: [IMAGE:https://www.herbonnaturals.com/images/product.jpg] Ye hamara best product hai!
+- AI will extract this tag and send the image with the text as caption.
 
 CUSTOMER INFO:
 ${customerProfile ? `- Naam: ${customerProfile.customerName}\n- Segment: ${customerProfile.segment}` : '- New Customer'}
@@ -230,13 +235,24 @@ function calculateDiscount(profile) {
 }
 
 // ==================== CORE ACTIONS ====================
-async function sendWhatsApp(phone, text) {
+async function sendWhatsApp(phone, text, imageUrl = null) {
     if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) return { mock: true };
     const cleanPhone = normalizePhoneForWhatsApp(phone);
     try {
-        await axios.post(GRAPH_URL, {
-            messaging_product: 'whatsapp', to: cleanPhone, type: 'text', text: { body: text }
-        }, { headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` } });
+        const data = {
+            messaging_product: 'whatsapp',
+            to: cleanPhone
+        };
+
+        if (imageUrl) {
+            data.type = 'image';
+            data.image = { link: imageUrl, caption: text };
+        } else {
+            data.type = 'text';
+            data.text = { body: text };
+        }
+
+        await axios.post(GRAPH_URL, data, { headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` } });
         return { success: true };
     } catch (err) {
         // Fallback to hello_world template if window closed
@@ -417,7 +433,16 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
             console.error('Reorder creation failed:', e.message);
         }
     } else {
-        await sendWhatsApp(senderPhone, cleanMessage(responseText));
+        // Extract image URL if present
+        const imageMatch = responseText.match(/\[IMAGE:(https?:\/\/[^\]]+)\]/);
+        let imageUrl = null;
+        let textToSend = responseText;
+        if (imageMatch) {
+            imageUrl = imageMatch[1];
+            textToSend = responseText.replace(imageMatch[0], '').trim();
+        }
+
+        await sendWhatsApp(senderPhone, cleanMessage(textToSend), imageUrl);
     }
 
     await conv.save();
