@@ -114,12 +114,14 @@ function inferHowToUse(product) {
 function buildPromptCatalog(products) {
     if (!products || products.length === 0) return 'Catalog empty.';
     return products.map((p) => {
-        const benefits = (p.benefits || []).slice(0, 2).join(', ');
+        const benefits = (p.benefits || []).join(', ');
         return `• ${p.name} | ₹${p.price} | ${p.size || ''} ${p.bestSeller ? '⭐' : ''}
-  🎯 Use: ${inferProductUseCase(p)}
+  🎯 Use: ${p.idealFor || inferProductUseCase(p)}
   ✅ Benefits: ${benefits}
-  🔗 ${getProductWebsiteLink(p)}`;
-    }).join('\n');
+  🌿 Ingredients: ${p.ingredients || 'Natural herbs'}
+  📝 Usage: ${p.usage || 'Directions on pack'}
+  🔗 Link: ${getProductWebsiteLink(p)}`;
+    }).join('\n\n');
 }
 
 function isProductImageRequest(text) {
