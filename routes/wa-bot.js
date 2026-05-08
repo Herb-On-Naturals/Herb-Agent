@@ -126,7 +126,7 @@ function buildPromptCatalog(products) {
 
 function isProductImageRequest(text) {
     const t = (text || '').toLowerCase();
-    return /(photo|image|pic|picture|img|dikhao|dikhaiye|show|link|photo bhejo|img bhej)/.test(t);
+    return /(photo|image|imag|pic|picture|img|dikhao|dikhaiye|show|link|photo bhejo|img bhej)/.test(t);
 }
 
 function scoreProductMatch(text, product) {
@@ -152,8 +152,13 @@ async function buildProductImageLinkReply(messageText, conv) {
         .map((x) => x.product);
 
     const selected = (ranked.length > 0 ? ranked : products).slice(0, 3);
-    const lines = selected.map((p, i) => `${i + 1}. ${p.name}: ${getProductWebsiteLink(p)}`).join('\n');
+    
+    if (ranked.length > 0) {
+        const bestMatch = ranked[0];
+        return `Bilkul ji 📸 Ye rahi ${bestMatch.name} ki photo:\n[IMAGE:${getProductWebsiteLink(bestMatch)}]\n\nAap concern batayein, main best recommend kar doon 🙂\n\n[INTENT:QUESTION] [SENTIMENT:POSITIVE]`;
+    }
 
+    const lines = selected.map((p, i) => `${i + 1}. ${p.name}: ${getProductWebsiteLink(p)}`).join('\n');
     return `Bilkul ji 📸 Product links yeh rahe:\n${lines}\n\nAap concern batayein, main best recommend kar doon 🙂\n\n[INTENT:QUESTION] [SENTIMENT:POSITIVE]`;
 }
 
