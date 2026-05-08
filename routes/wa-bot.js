@@ -162,6 +162,50 @@ async function buildProductImageLinkReply(messageText, conv) {
     return `Bilkul ji 📸 Product links yeh rahe:\n${lines}\n\nAap concern batayein, main best recommend kar doon 🙂\n\n[INTENT:QUESTION] [SENTIMENT:POSITIVE]`;
 }
 
+async function buildRuleBasedResponse(messageText, conv) {
+    const text = (messageText || '').toLowerCase();
+    
+    // 1. Welcome Message
+    if (/(hi|hello|hlw|hey|hola|namaste)/i.test(text)) {
+        return "Namaste ji! 🙏 Herb On Naturals me aapka swagat hai. Main aapki kaise madad kar sakta hoon?\n\nHamare paas ye products hain:\n- Herbon Vedic Capsule (Dard ke liye)\n- Herbon Natural Shilajit (Stamina ke liye)\n- Herbon Green Tea\n\nAapko kis product ke baare me janna hai?";
+    }
+
+    // 2. Image Request (Already handled by buildProductImageLinkReply)
+    const imgReply = await buildProductImageLinkReply(messageText, conv);
+    if (imgReply) return imgReply;
+
+    // 3. Product Info Lookup
+    const products = await Product.find({ isActive: true });
+    let bestMatch = null;
+    let highestScore = 0;
+    
+    products.forEach(p => {
+        const score = scoreProductMatch(messageText, p);
+        if (score > highestScore) {
+            highestScore = score;
+            bestMatch = p;
+        }
+    });
+
+    if (bestMatch && highestScore >= 3) {
+        // If user asks for price
+        if (/(price|kitna|rate|cost|paise)/i.test(text)) {
+            return `${bestMatch.name} ki price ₹${bestMatch.price} hai ji.`;
+        }
+        
+        // If user asks for usage
+        if (/(use|kaise|khana|lena|usage)/i.test(text)) {
+            return `${bestMatch.name} ko use karne ka tarika: ${bestMatch.usage || 'Pack pe likha hua hai'}.`;
+        }
+
+        // Default product info
+        return `${bestMatch.name} ke baare me jankari:\n🎯 Use: ${bestMatch.idealFor || 'Health improvement'}\n✅ Benefits: ${(bestMatch.benefits || []).join(', ')}\n💰 Price: ₹${bestMatch.price}\n\nKya aap iska order karna chahte hain?`;
+    }
+
+    // 4. Fallback
+    return "Ji, main samajh nahi paya. Kya aap product ka naam bata sakte hain jiske baare me aap janna chahte hain? (Jaise: Shilajit, Vedic Capsule, ya Green Tea)";
+}
+
 // ==================== PROMPT BUILDER ====================
 async function buildSystemPrompt(customerProfile, productCatalog, discountInfo) {
     let prompt = `Tu hai "Aaditya" — Herb On Naturals ka Senior AI Sales Agent. Tu WhatsApp pe customers se baat karta hai. Tera kaam hai customers ko guide karna, unki health problems samajhna, aur hamare Ayurvedic products pitch karke sales generate karna.
@@ -413,10 +457,18 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
     }
 
     conv.messages.push({ role: 'user', content: messageText });
+    
+    // Using Rule-Based Response instead of AI to save tokens
+    const responseText = await buildRuleBasedResponse(messageText, conv);
+    const intent = extractIntent(responseText);
+    const sentiment = 'neutral';
+    
+    /* AI Code (Commented out)
     const aiResponse = await getAIResponse(conv.messages.map(m => ({ role: m.role, content: m.content })));
     const responseText = aiResponse.content;
     const intent = extractIntent(responseText);
     const sentiment = extractSentiment(responseText);
+    */
     
     conv.messages.push({ role: 'assistant', content: responseText, sentiment });
     conv.lastMessageAt = new Date();
