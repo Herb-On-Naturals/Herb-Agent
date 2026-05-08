@@ -166,7 +166,7 @@ async function buildRuleBasedResponse(messageText, conv) {
     const text = (messageText || '').toLowerCase();
     
     // 1. Welcome Message
-    if (/(hi|hello|hlw|hey|hola|namaste)/i.test(text)) {
+    if (/(hi|hello|hlw|hlo|hey|hola|namaste|bhai|bro)/i.test(text)) {
         return "Namaste ji! 🙏 Herb On Naturals me aapka swagat hai. Main aapki kaise madad kar sakta hoon?\n\nHamare paas ye products hain:\n- Herbon Vedic Capsule (Dard ke liye)\n- Herbon Natural Shilajit (Stamina ke liye)\n- Herbon Green Tea\n\nAapko kis product ke baare me janna hai?";
     }
 
