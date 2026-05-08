@@ -120,7 +120,7 @@ function buildPromptCatalog(products) {
   ✅ Benefits: ${benefits}
   🌿 Ingredients: ${p.ingredients || 'Natural herbs'}
   📝 Usage: ${p.usage || 'Directions on pack'}
-  🔗 Link: ${getProductWebsiteLink(p)}`;
+  🖼️ Image_URL: ${getProductWebsiteLink(p)}`;
     }).join('\n\n');
 }
 
@@ -181,8 +181,8 @@ ${productCatalog}
 4. Agar customer price pooche, to Catalog me di gayi price batao aur bolo "Aapki health ke liye ye ek investment hai ji, aur products 100% natural hain."
 
 🖼️ IMAGE TAG (Use to send product images):
-- Agar customer product ki photo ya image mange, to Catalog me diye gaye link ko is format me likho: [IMAGE:https://.../image.jpg]
-- Example: [IMAGE:https://www.herbonnaturals.com/images/product.jpg] Ye hamara best product hai!
+- Agar customer product ki photo ya image mange, to Catalog me diye gaye Image_URL ko is format me likho: [IMAGE:Image_URL]
+- Example: [IMAGE:https://www.herbonnaturals.com/Product/01.png] Ye hamara best product hai!
 - AI will extract this tag and send the image with the text as caption.
 
 CUSTOMER INFO:
