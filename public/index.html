@@ -24,7 +24,7 @@
                 <input type="password" id="loginPass" class="form-input" placeholder="Password"
                     style="text-align:center; font-size:18px;">
             </div>
-            <button class="btn btn-accent" id="btnLogin" style="width:100\%; margin-top:20px; padding:12px;">🔓 Unlock
+            <button class="btn btn-accent" id="btnLogin" style="width:100%; margin-top:20px; padding:12px;">🔓 Unlock
                 Dashboard</button>
             <p id="loginError" style="color:#ef4444; margin-top:16px; font-size:14px; display:none;">Invalid password,
                 please try again.</p>
@@ -91,6 +91,7 @@
         <button class="tab-btn" data-tab="campaigns">📢 Campaigns</button>
         <button class="tab-btn" data-tab="logs">📞 Call Logs</button>
         <button class="tab-btn" data-tab="reorders">🔄 Reorder History</button>
+        <button class="tab-btn" data-tab="leads">👥 Leads</button>
         <button class="tab-btn" data-tab="upload">📤 Upload Excel</button>
     </nav>
 
@@ -100,8 +101,7 @@
             <div class="panel-header">
                 <h2>Delivered Orders</h2>
                 <div class="panel-actions">
-                    <input type="text" class="search-input" id="orderSearch"
-                        placeholder="Search name, mobile, order ID...">
+                    <input type="text" class="search-input" id="orderSearch" placeholder="Search name, mobile, order ID...">
                     <input type="date" class="date-input" id="orderDateFrom" title="From Date">
                     <input type="date" class="date-input" id="orderDateTo" title="To Date">
                     <button class="btn btn-outline" id="btnFilterOrders">🔍 Filter</button>
@@ -361,6 +361,46 @@
                     <tbody id="reordersBody">
                         <tr>
                             <td colspan="8" class="loading-cell">Loading reorder history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TAB: LEADS (CRM) ===== -->
+    <section class="tab-content" id="tab-leads">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>👥 Lead Management</h2>
+                <div class="panel-actions">
+                    <input type="text" class="search-input" id="leadSearch" placeholder="Search name or phone...">
+                    <select id="leadStatusFilter" class="form-input" style="width: 150px;">
+                        <option value="">All Statuses</option>
+                        <option value="New">New</option>
+                        <option value="Contacted">Contacted</option>
+                        <option value="Interested">Interested</option>
+                        <option value="Won">Won</option>
+                        <option value="Lost">Lost</option>
+                    </select>
+                    <button class="btn btn-outline" id="btnFilterLeads">🔍 Filter</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="leadsTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Sentiment</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsBody">
+                        <tr>
+                            <td colspan="6" class="loading-cell">Loading leads...</td>
                         </tr>
                     </tbody>
                 </table>

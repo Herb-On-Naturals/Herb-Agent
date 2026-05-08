@@ -208,6 +208,16 @@ const customerProfileSchema = new mongoose.Schema({
         enum: ['VIP', 'Regular', 'New', 'Inactive', 'Lost'],
         default: 'New'
     },
+    // CRM Lead Tracking
+    leadStatus: {
+        type: String,
+        enum: ['New', 'Contacted', 'Interested', 'Won', 'Lost'],
+        default: 'New'
+    },
+    funnelStage: {
+        type: String,
+        default: 'Discovery'
+    },
     // Discounts
     discountsGiven: { type: Number, default: 0 },
     totalDiscountAmount: { type: Number, default: 0 },

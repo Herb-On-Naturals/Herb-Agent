@@ -122,6 +122,7 @@ function initTabs() {
             if (btn.dataset.tab === 'campaigns') loadCampaigns();
             if (btn.dataset.tab === 'logs') loadCallLogs();
             if (btn.dataset.tab === 'reorders') loadReorderHistory();
+            if (btn.dataset.tab === 'leads') loadLeads();
         });
     });
 }
@@ -166,6 +167,12 @@ function initEventListeners() {
     document.getElementById('btnRefreshCampaigns').addEventListener('click', loadCampaigns);
     document.getElementById('btnRefreshLogs').addEventListener('click', loadCallLogs);
     document.getElementById('btnRefreshReorders').addEventListener('click', loadReorderHistory);
+
+    // Leads filters
+    document.getElementById('btnFilterLeads')?.addEventListener('click', loadLeads);
+    document.getElementById('leadSearch')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadLeads();
+    });
 }
 
 // ==================== STATS ====================
@@ -750,7 +757,113 @@ async function loadReorderHistory() {
     }
 }
 
+// ==================== LEADS (CRM) ====================
+async function loadLeads() {
+    const tbody = document.getElementById('leadsBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">⏳ Loading leads...</td></tr>';
+
+    const search = document.getElementById('leadSearch')?.value || '';
+    const status = document.getElementById('leadStatusFilter')?.value || '';
+
+    try {
+        const params = new URLSearchParams({ search, status });
+        const res = await fetch(`${API}/api/leads?${params}`);
+        const data = await res.json();
+
+        if (!data.success || !data.leads.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">No leads found</td></tr>';
+            return;
+        }
+
+        const statusColors = { New: '#667eea', Contacted: '#f59e0b', Interested: '#10b981', Won: '#10b981', Lost: '#ef4444' };
+
+        tbody.innerHTML = data.leads.map(l => {
+            const statusColor = statusColors[l.leadStatus] || '#94a3b8';
+            const sentimentEmoji = l.lastSentiment === 'positive' ? '😊' : l.lastSentiment === 'negative' ? '😞' : '😐';
+            return `<tr>
+                <td><strong>${l.customerName || 'N/A'}</strong></td>
+                <td class="mobile-cell">${l.phone}</td>
+                <td>
+                    <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${statusColor}22;color:${statusColor}">${l.leadStatus}</span>
+                </td>
+                <td style="font-size:18px;text-align:center">${sentimentEmoji}</td>
+                <td><span class="text-truncate" title="${l.notes || ''}">${l.notes || '—'}</span></td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="updateLeadStatus('${l.phone}')">⚙️ Status</button>
+                    <button class="btn btn-outline btn-sm" onclick="addLeadNote('${l.phone}')">📝 Note</button>
+                </td>
+            </tr>`;
+        }).join('');
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">❌ Error loading leads</td></tr>';
+    }
+}
+
+async function updateLeadStatus(phone) {
+    const newStatus = prompt('Enter new status (New, Contacted, Interested, Won, Lost):');
+    if (!newStatus) return;
+    
+    const validStatuses = ['New', 'Contacted', 'Interested', 'Won', 'Lost'];
+    if (!validStatuses.includes(newStatus)) {
+        alert('Invalid status. Use: New, Contacted, Interested, Won, Lost');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/api/leads/${phone}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Status updated', 'success');
+            loadLeads();
+        } else {
+            showToast('Error updating status', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating status', 'error');
+    }
+}
+
+async function addLeadNote(phone) {
+    const note = prompt('Enter note:');
+    if (!note) return;
+
+    try {
+        const res = await fetch(`${API}/api/leads/${phone}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Note added', 'success');
+            loadLeads();
+        } else {
+            showToast('Error adding note', 'error');
+        }
+    } catch (e) {
+        showToast('Error adding note', 'error');
+    }
+}
+
 // ==================== TOAST ====================
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
 // ==================== WHATSAPP ====================
 let waTemplates = [];
 let waPage = 1;
@@ -1104,19 +1217,7 @@ function initChatEvents() {
 }
 
 // ==================== TOAST ====================
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
-}
+// (Duplicate Toast function removed, using the one above)
 
 // ==================== EXCEL UPLOAD ====================
 function initUpload() {

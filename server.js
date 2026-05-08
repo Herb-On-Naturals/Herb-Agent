@@ -235,6 +235,7 @@ const waBotRoutes = require('./routes/wa-bot');
 const productRoutes = require('./routes/products');
 const analyticsRoutes = require('./routes/analytics');
 const followupRoutes = require('./routes/followup');
+const leadsRoutes = require('./routes/leads');
 
 app.use('/api', orderRoutes);
 app.use('/api', campaignRoutes);
@@ -245,6 +246,7 @@ app.use('/api', waBotRoutes);
 app.use('/api', productRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api', followupRoutes);
+app.use('/api', leadsRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
