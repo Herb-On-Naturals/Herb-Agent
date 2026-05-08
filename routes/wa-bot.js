@@ -500,4 +500,25 @@ router.post('/bot/simulate', async (req, res) => {
     });
 });
 
+// Get all conversations
+router.get('/bot/conversations', async (req, res) => {
+    try {
+        const conversations = await Conversation.find({}).sort({ lastMessageAt: -1 }).limit(50);
+        res.json({ success: true, conversations });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Get specific conversation
+router.get('/bot/conversations/:id', async (req, res) => {
+    try {
+        const conversation = await Conversation.findById(req.params.id);
+        if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
+        res.json({ success: true, conversation });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
