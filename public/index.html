@@ -151,7 +151,15 @@
                 <select id="waAudienceSelect" class="form-input" onchange="loadWAData()">
                     <option value="delivered">Delivered Orders (Reorders)</option>
                     <option value="leads">New Customers (Leads)</option>
+                    <option value="custom">Manual Numbers (Paste List)</option>
                 </select>
+            </div>
+
+            <!-- Custom Numbers Input (Hidden by default) -->
+            <div id="waCustomNumbersDiv" class="form-group" style="display:none; margin-bottom: 16px;">
+                <label>📞 Paste Phone Numbers (Comma or Line Separated)</label>
+                <textarea id="waManualNumbers" class="form-input" rows="4" placeholder="e.g. 9876543210, 9123456789\nOr paste one per line..." oninput="updateBulkWABtn()"></textarea>
+                <p class="wa-hint">💡 Type or paste numbers provided by your calling agents here.</p>
             </div>
 
             <!-- Template Selector -->
@@ -172,7 +180,7 @@
             </div>
 
             <!-- Orders table for WhatsApp -->
-            <div class="table-wrap">
+            <div class="table-wrap" id="waTableWrap">
                 <table class="data-table" id="waOrdersTable">
                     <thead>
                         <tr>

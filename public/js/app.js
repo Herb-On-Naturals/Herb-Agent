@@ -1035,10 +1035,24 @@ async function loadWAData() {
     updateBulkWABtn();
     waPage = 1;
     const audience = document.getElementById('waAudienceSelect')?.value || 'delivered';
-    if (audience === 'delivered') {
-        loadWAOrders();
+    
+    const customDiv = document.getElementById('waCustomNumbersDiv');
+    const tableWrap = document.getElementById('waTableWrap');
+    
+    if (audience === 'custom') {
+        if (customDiv) customDiv.style.display = 'block';
+        if (tableWrap) tableWrap.style.display = 'none';
+        const pagDiv = document.getElementById('waOrdersPagination');
+        if (pagDiv) pagDiv.innerHTML = '';
     } else {
-        loadWALeads();
+        if (customDiv) customDiv.style.display = 'none';
+        if (tableWrap) tableWrap.style.display = 'block';
+        
+        if (audience === 'delivered') {
+            loadWAOrders();
+        } else {
+            loadWALeads();
+        }
     }
 }
 
@@ -1135,8 +1149,17 @@ async function loadWALeads() {
 
 function updateBulkWABtn() {
     const btn = document.getElementById('btnBulkWA');
-    btn.disabled = waSelected.size === 0;
-    btn.textContent = waSelected.size > 0 ? `📤 Send to ${waSelected.size} Selected` : '📤 Bulk Send to Selected';
+    const audience = document.getElementById('waAudienceSelect')?.value || 'delivered';
+    
+    if (audience === 'custom') {
+        const numbersText = document.getElementById('waManualNumbers')?.value.trim() || '';
+        const count = numbersText.split(/[\n,]+/).filter(n => n.trim().length >= 10).length;
+        btn.disabled = count === 0;
+        btn.textContent = count > 0 ? `📤 Send to ${count} Custom Numbers` : '📤 Bulk Send to Custom';
+    } else {
+        btn.disabled = waSelected.size === 0;
+        btn.textContent = waSelected.size > 0 ? `📤 Send to ${waSelected.size} Selected` : '📤 Bulk Send to Selected';
+    }
 }
 
 async function sendSingleWA(orderId, phone = null, customerName = null) {
@@ -1170,9 +1193,20 @@ async function sendSingleWA(orderId, phone = null, customerName = null) {
 async function bulkSendWA() {
     const message = document.getElementById('waMessageText').value.trim();
     if (!message) return showToast('❌ Pehle message likhein ya template select karein!', 'error');
-    if (!waSelected.size) return showToast('❌ Koi orders select karein!', 'error');
+    
+    const audience = document.getElementById('waAudienceSelect')?.value || 'delivered';
+    let targetIds = [];
+    
+    if (audience === 'custom') {
+        const numbersText = document.getElementById('waManualNumbers')?.value.trim() || '';
+        targetIds = numbersText.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length >= 10);
+        if (!targetIds.length) return showToast('❌ Koi valid numbers enter karein!', 'error');
+    } else {
+        if (!waSelected.size) return showToast('❌ Koi orders select karein!', 'error');
+        targetIds = [...waSelected];
+    }
 
-    if (!confirm(`${waSelected.size} customers ko WhatsApp message bhejein?`)) return;
+    if (!confirm(`${targetIds.length} recipients ko WhatsApp message bhejein?`)) return;
 
     const btn = document.getElementById('btnBulkWA');
     btn.disabled = true;
@@ -1182,15 +1216,19 @@ async function bulkSendWA() {
         const res = await fetch(`${API}/api/whatsapp/bulk-send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderIds: [...waSelected], message })
+            body: JSON.stringify({ orderIds: targetIds, message })
         });
         const data = await res.json();
         if (data.success) {
             showToast(`✅ ${data.message}`, 'success');
-            waSelected.clear();
+            if (audience !== 'custom') {
+                waSelected.clear();
+                document.querySelectorAll('#waOrdersBody .wa-check').forEach(cb => cb.checked = false);
+                document.getElementById('waSelectAll').checked = false;
+            } else {
+                document.getElementById('waManualNumbers').value = '';
+            }
             updateBulkWABtn();
-            document.querySelectorAll('#waOrdersBody .wa-check').forEach(cb => cb.checked = false);
-            document.getElementById('waSelectAll').checked = false;
         } else {
             showToast('❌ ' + data.message, 'error');
         }
@@ -1289,7 +1327,7 @@ async function openChat(convId) {
 
         // Render messages
         const thread = document.getElementById('chatThread');
-        thread.innerHTML = conv.messages.map(m => {
+        thread.innerHTML = conv.messages.filter(m => m.role !== 'system').map(m => {
             const isBot = m.role === 'assistant';
             const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
             return `
