@@ -31,70 +31,79 @@
         </div>
     </div>
 
-    <!-- ===== HEADER ===== -->
-    <header class="header">
-        <div class="header-left">
-            <div class="logo-icon">🤖</div>
-            <div>
-                <h1 class="logo-text">Herb Agent</h1>
-                <p class="logo-sub">Herb Agent · Reorder System</p>
+    <!-- ===== CRM WRAPPER ===== -->
+    <div class="crm-wrapper">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="crm-sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">🤖</div>
+                <div>
+                    <h1 class="logo-text">Herb Agent</h1>
+                    <p class="logo-sub">Reorder System</p>
+                </div>
             </div>
-        </div>
-        <div class="header-right">
-            <div class="status-badge" id="dbStatus">
-                <span class="pulse"></span>
-                <span>Connecting...</span>
-            </div>
-            <div class="mode-badge" id="modeBadge">Mock Mode</div>
-            <button class="btn btn-outline btn-sm" id="btnLogout"
-                style="margin-left:12px; border-color:rgba(255,255,255,0.1); font-size:11px;">🔒 Logout</button>
-        </div>
-    </header>
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="orders">📦 Delivered Orders</button>
+                <button class="tab-btn" data-tab="chat">💬 WhatsApp Chat</button>
+                <button class="tab-btn" data-tab="broadcast">📤 Broadcast</button>
+                <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+                <button class="tab-btn" data-tab="campaigns">📢 Campaigns</button>
+                <button class="tab-btn" data-tab="logs">📞 Call Logs</button>
+                <button class="tab-btn" data-tab="reorders">🔄 Reorder History</button>
+                <button class="tab-btn" data-tab="leads">👥 Leads</button>
+                <button class="tab-btn" data-tab="upload">📤 Upload Excel</button>
+            </nav>
+        </aside>
 
-    <!-- ===== STATS CARDS ===== -->
-    <section class="stats-row" id="statsRow">
-        <div class="stat-card stat-delivered">
-            <div class="stat-icon">📦</div>
-            <div class="stat-info">
-                <span class="stat-value" id="statDelivered">—</span>
-                <span class="stat-label">Delivered Orders</span>
-            </div>
-        </div>
-        <div class="stat-card stat-reorders">
-            <div class="stat-icon">🔄</div>
-            <div class="stat-info">
-                <span class="stat-value" id="statReorders">—</span>
-                <span class="stat-label">Reorders Booked</span>
-            </div>
-        </div>
-        <div class="stat-card stat-rate">
-            <div class="stat-icon">📈</div>
-            <div class="stat-info">
-                <span class="stat-value" id="statRate">—</span>
-                <span class="stat-label">Reorder Rate</span>
-            </div>
-        </div>
-        <div class="stat-card stat-revenue">
-            <div class="stat-icon">💰</div>
-            <div class="stat-info">
-                <span class="stat-value" id="statRevenue">—</span>
-                <span class="stat-label">Reorder Revenue</span>
-            </div>
-        </div>
-    </section>
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="crm-main">
+            <!-- ===== HEADER ===== -->
+            <header class="header">
+                <div class="header-left">
+                    <h2 id="currentTabTitle">Delivered Orders</h2>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge" id="dbStatus">
+                        <span class="pulse"></span>
+                        <span>Connecting...</span>
+                    </div>
+                    <div class="mode-badge" id="modeBadge">Mock Mode</div>
+                    <button class="btn btn-outline btn-sm" id="btnLogout" style="margin-left:12px;">🔒 Logout</button>
+                </div>
+            </header>
 
-    <!-- ===== TAB NAV ===== -->
-    <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="orders">📦 Delivered Orders</button>
-        <button class="tab-btn" data-tab="chat">💬 WhatsApp Chat</button>
-        <button class="tab-btn" data-tab="broadcast">📤 Broadcast</button>
-        <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
-        <button class="tab-btn" data-tab="campaigns">📢 Campaigns</button>
-        <button class="tab-btn" data-tab="logs">📞 Call Logs</button>
-        <button class="tab-btn" data-tab="reorders">🔄 Reorder History</button>
-        <button class="tab-btn" data-tab="leads">👥 Leads</button>
-        <button class="tab-btn" data-tab="upload">📤 Upload Excel</button>
-    </nav>
+            <div class="crm-content">
+                <!-- ===== STATS CARDS ===== -->
+                <section class="stats-row" id="statsRow">
+                    <div class="stat-card stat-delivered">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statDelivered">—</span>
+                            <span class="stat-label">Delivered Orders</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-reorders">
+                        <div class="stat-icon">🔄</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statReorders">—</span>
+                            <span class="stat-label">Reorders Booked</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-rate">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statRate">—</span>
+                            <span class="stat-label">Reorder Rate</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-revenue">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statRevenue">—</span>
+                            <span class="stat-label">Reorder Revenue</span>
+                        </div>
+                    </div>
+                </section>
 
     <!-- ===== TAB: DELIVERED ORDERS ===== -->
     <section class="tab-content active" id="tab-orders">
@@ -646,6 +655,9 @@
             <div id="uploadResult" class="upload-result" style="display:none"></div>
         </div>
     </section>
+            </div> <!-- End crm-content -->
+        </main> <!-- End crm-main -->
+    </div> <!-- End crm-wrapper -->
 
     <!-- ===== REORDER MODAL ===== -->
     <div class="modal-overlay" id="reorderModal">

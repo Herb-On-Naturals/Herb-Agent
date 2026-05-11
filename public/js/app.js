@@ -118,6 +118,13 @@ function initTabs() {
             btn.classList.add('active');
             document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
 
+            // Update header title
+            const titleEl = document.getElementById('currentTabTitle');
+            if (titleEl) {
+                // Remove emojis and trim
+                titleEl.textContent = btn.textContent.replace(/[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu, '').trim();
+            }
+
             // Lazy load tab data
             if (btn.dataset.tab === 'campaigns') loadCampaigns();
             if (btn.dataset.tab === 'logs') loadCallLogs();
