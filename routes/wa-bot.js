@@ -584,6 +584,32 @@ router.post('/bot/simulate', async (req, res) => {
     });
 });
 
+// ==================== AGENT REPLY ====================
+router.post('/bot/agent-reply', async (req, res) => {
+    try {
+        const { phone, message } = req.body;
+        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        let conv = await Conversation.findOne({ phone: { $regex: cleanPhone }, status: 'active' }).sort({ lastMessageAt: -1 });
+        
+        if (!conv) {
+            return res.status(404).json({ success: false, message: 'No active conversation found' });
+        }
+        
+        conv.messages.push({ role: 'assistant', content: message });
+        conv.lastMessageAt = new Date();
+        
+        // Send via WhatsApp
+        await sendWhatsApp(phone, message);
+        
+        await conv.save();
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Agent reply error:', err.message);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // Get all conversations
 router.get('/bot/conversations', async (req, res) => {
     try {

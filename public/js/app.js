@@ -1352,7 +1352,7 @@ async function openChat(convId) {
     }
 }
 
-async function simulateReply() {
+async function simulateCustomerReply() {
     const input = document.getElementById('chatSimInput');
     const message = input.value.trim();
     if (!message || !currentConvId || !currentConvPhone) return;
@@ -1362,7 +1362,7 @@ async function simulateReply() {
 
     const thread = document.getElementById('chatThread');
 
-    // Add user message immediately
+    // Add customer message immediately (Left side)
     thread.innerHTML += `
         <div class="wa-message wa-msg-in">
             <div class="wa-msg-author">~ Customer</div>
@@ -1423,10 +1423,51 @@ async function simulateReply() {
     input.focus();
 }
 
+async function sendAgentReply() {
+    const input = document.getElementById('chatSimInput');
+    const message = input.value.trim();
+    if (!message || !currentConvId || !currentConvPhone) return;
+
+    input.value = '';
+    input.disabled = true;
+
+    const thread = document.getElementById('chatThread');
+
+    // Add agent message immediately (Right side)
+    thread.innerHTML += `
+        <div class="wa-message wa-msg-out">
+            <div class="wa-msg-text">${message}</div>
+            <div class="wa-msg-meta">Just now <svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.8 1.4 10.4 0 5.1 5.3 2.5 2.7 1.1 4.1l4 4 6.7-6.7zM16 4.1l-1.4-1.4-4 4L12 8.1l4-4z"></path></svg></div>
+        </div>`;
+    thread.scrollTop = thread.scrollHeight;
+
+    try {
+        const res = await fetch(`${API}/api/bot/agent-reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: currentConvPhone, message })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast('✅ Message sent as Agent', 'success');
+            loadConversations();
+        } else {
+            showToast('❌ ' + data.message, 'error');
+        }
+    } catch (e) {
+        showToast('❌ Error sending reply: ' + e.message, 'error');
+    }
+
+    input.disabled = false;
+    input.focus();
+}
+
 function initChatEvents() {
-    document.getElementById('btnSimSend')?.addEventListener('click', simulateReply);
+    document.getElementById('btnSimSend')?.addEventListener('click', sendAgentReply);
+    document.getElementById('btnSimCustomer')?.addEventListener('click', simulateCustomerReply);
     document.getElementById('chatSimInput')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') simulateReply();
+        if (e.key === 'Enter') sendAgentReply();
     });
     document.getElementById('btnRefreshConvs')?.addEventListener('click', loadConversations);
 }
