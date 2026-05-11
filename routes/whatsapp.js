@@ -42,6 +42,225 @@ async function sendWhatsAppMessage(to, message) {
 // ==================== STATUS ====================
 router.get('/whatsapp/status', (req, res) => {
     res.json({
+        success: true,
+        configured: isWhatsAppConfigured(),
+        phoneNumberId: PHONE_NUMBER_ID ? `...${PHONE_NUMBER_ID.slice(-4)}` : null
+    });
+});
+
+// ==================== SEND TO SINGLE ORDER/LEAD ====================
+router.post('/whatsapp/send', async (req, res) => {
+    try {
+        const { orderId, phone: reqPhone, customerName: reqName, message, messageType } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ success: false, message: 'Message required' });
+        }
+        if (!orderId && !reqPhone) {
+            return res.status(400).json({ success: false, message: 'orderId or phone required' });
+        }
+
+        let phone = reqPhone;
+        let customerName = reqName || 'Customer';
+        let orderRef = '';
+
+        if (orderId) {
+            const order = await Order.findById(orderId);
+            if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+            phone = order.mobile || order.telNo;
+            customerName = order.customerName || 'Customer';
+            orderRef = order.orderId || '';
+        }
+
+        if (!phone) return res.status(400).json({ success: false, message: 'No phone number available' });
+
+        // Check if WhatsApp is configured
+        if (!isWhatsAppConfigured()) {
+            // Mock mode
+            console.log(`📱 [MOCK WA] Would send to ${phone}: "${message.substring(0, 50)}..."`);
+
+            // Log the message
+            await CallLog.create({
+                callId: 'WA-MOCK-' + Date.now(),
+                orderId: orderRef,
+                customerName: customerName,
+                mobile: phone,
+                type: 'whatsapp',
+                callStatus: 'Completed',
+                status: 'mock',
+                result: 'mock_sent',
+                notes: `[MOCK] ${message.substring(0, 200)}`,
+                duration: 0
+            });
+
+            return res.json({
+                success: true,
+                mode: 'mock',
+                message: `[Mock] WhatsApp message simulated to ${customerName}`
+            });
+        }
+
+        // Live mode — send via Meta API
+        const result = await sendWhatsAppMessage(phone, message);
+        console.log(`✅ WhatsApp sent to ${customerName} (${result.phone}), ID: ${result.messageId}`);
+
+        // Log the message
+        await CallLog.create({
+            callId: 'WA-' + Date.now(),
+            orderId: orderRef,
+            customerName: customerName,
+            mobile: phone,
+            type: 'whatsapp',
+            callStatus: 'Completed',
+            status: 'completed',
+            result: 'sent',
+            notes: message.substring(0, 500),
+            duration: 0,
+            transcript: `WhatsApp Message ID: ${result.messageId}`
+        });
+
+        res.json({
+            success: true,
+            mode: 'live',
+            message: `WhatsApp sent to ${customerName}`,
+            messageId: result.messageId
+        });
+    } catch (err) {
+        console.error('❌ WhatsApp send error:', err.response?.data || err.message);
+        res.status(500).json({
+            success: false,
+            message: err.response?.data?.error?.message || err.message
+        });
+    }
+});
+
+// ==================== BULK SEND (CAMPAIGN) ====================
+router.post('/whatsapp/bulk-send', async (req, res) => {
+    try {
+        const { orderIds, message } = req.body;
+
+        if (!orderIds || !orderIds.length || !message) {
+            return res.status(400).json({ success: false, message: 'orderIds array and message required' });
+        }
+
+        const mongoose = require('mongoose');
+        const validObjectIds = orderIds.filter(id => mongoose.Types.ObjectId.isValid(id) && String(id).length === 24);
+        const phoneNumbers = orderIds.filter(id => !mongoose.Types.ObjectId.isValid(id) || String(id).length !== 24);
+
+        let targets = [];
+
+        if (validObjectIds.length > 0) {
+            const orders = await Order.find({ _id: { $in: validObjectIds } });
+            targets = targets.concat(orders.map(o => ({
+                phone: o.mobile || o.telNo,
+                customerName: o.customerName || 'Customer',
+                orderId: o.orderId || '',
+                total: o.total || ''
+            })));
+        }
+
+        if (phoneNumbers.length > 0) {
+            const { CustomerProfile } = require('../models');
+            const leads = await CustomerProfile.find({ phone: { $in: phoneNumbers } });
+            
+            // Map known leads
+            leads.forEach(l => {
+                targets.push({
+                    phone: l.phone,
+                    customerName: l.customerName || 'Customer',
+                    orderId: '',
+                    total: ''
+                });
+            });
+
+            // Map any phones that weren't found in CustomerProfile just in case
+            const foundPhones = leads.map(l => l.phone);
+            const missingPhones = phoneNumbers.filter(p => !foundPhones.includes(p));
+            missingPhones.forEach(p => {
+                targets.push({
+                    phone: p,
+                    customerName: 'Customer',
+                    orderId: '',
+                    total: ''
+                });
+            });
+        }
+
+        if (!targets.length) return res.status(404).json({ success: false, message: 'No valid targets found' });
+
+        let sent = 0, failed = 0, skipped = 0;
+        const results = [];
+
+        for (const target of targets) {
+            const phone = target.phone;
+            if (!phone) { skipped++; continue; }
+
+            try {
+                if (isWhatsAppConfigured()) {
+                    // Build personalized message
+                    const personalMsg = message
+                        .replace(/\{name\}/gi, target.customerName || 'Sir/Ma\'am')
+                        .replace(/\{order_id\}/gi, target.orderId || '')
+                        .replace(/\{total\}/gi, target.total || '');
+
+                    const result = await sendWhatsAppMessage(phone, personalMsg);
+
+                    await CallLog.create({
+                        callId: 'WA-BULK-' + Date.now() + '-' + Math.random().toString(36).substring(7),
+                        orderId: target.orderId,
+                        customerName: target.customerName,
+                        mobile: phone,
+                        type: 'whatsapp',
+                        callStatus: 'Completed',
+                        status: 'completed',
+                        result: 'sent',
+                        notes: personalMsg.substring(0, 500),
+                        duration: 0,
+                        transcript: `Message ID: ${result.messageId}`
+                    });
+
+                    sent++;
+                    results.push({ orderId: target.orderId, name: target.customerName, status: 'sent' });
+
+                    // Anti-spam delay: 2-4 sec between messages
+                    await new Promise(r => setTimeout(r, 2000 + Math.random() * 2000));
+                } else {
+                    // Mock mode
+                    console.log(`📱 [MOCK WA BULK] → ${target.customerName} (${phone})`);
+
+                    await CallLog.create({
+                        callId: 'WA-BMOCK-' + Date.now() + '-' + Math.random().toString(36).substring(7),
+                        orderId: target.orderId,
+                        customerName: target.customerName,
+                        mobile: phone,
+                        type: 'whatsapp',
+                        callStatus: 'Completed',
+                        status: 'mock',
+                        result: 'mock_sent',
+                        notes: `[MOCK] ${message.substring(0, 200)}`,
+                        duration: 0
+                    });
+
+                    sent++;
+                    results.push({ orderId: target.orderId, name: target.customerName, status: 'mock_sent' });
+                }
+            } catch (sendErr) {
+                failed++;
+                results.push({ orderId: target.orderId, name: target.customerName, status: 'failed', error: sendErr.message });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Bulk WhatsApp: ${sent} sent, ${failed} failed, ${skipped} skipped`,
+            stats: { sent, failed, skipped, total: targets.length },
+            results
+        });
+    } catch (err) {
+        console.error('❌ Bulk WhatsApp error:', err.message);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 // ==================== MESSAGE TEMPLATES ====================
 router.get('/whatsapp/templates', (req, res) => {
