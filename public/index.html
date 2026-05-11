@@ -145,6 +145,15 @@
                 </div>
             </div>
 
+            <!-- Audience Selector -->
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>👥 Select Audience</label>
+                <select id="waAudienceSelect" class="form-input" onchange="loadWAData()">
+                    <option value="delivered">Delivered Orders (Reorders)</option>
+                    <option value="leads">New Customers (Leads)</option>
+                </select>
+            </div>
+
             <!-- Template Selector -->
             <div class="wa-controls">
                 <div class="form-group">

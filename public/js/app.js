@@ -1014,7 +1014,7 @@ async function initWhatsApp() {
     } catch (e) { }
 
     // Load orders for WA tab
-    loadWAOrders();
+    loadWAData();
 
     // Select all
     document.getElementById('waSelectAll')?.addEventListener('change', (e) => {
@@ -1028,6 +1028,18 @@ async function initWhatsApp() {
 
     // Bulk send
     document.getElementById('btnBulkWA')?.addEventListener('click', bulkSendWA);
+}
+
+async function loadWAData() {
+    waSelected.clear();
+    updateBulkWABtn();
+    waPage = 1;
+    const audience = document.getElementById('waAudienceSelect')?.value || 'delivered';
+    if (audience === 'delivered') {
+        loadWAOrders();
+    } else {
+        loadWALeads();
+    }
 }
 
 async function loadWAOrders() {
@@ -1073,23 +1085,76 @@ async function loadWAOrders() {
     }
 }
 
+async function loadWALeads() {
+    try {
+        const res = await fetch(`${API}/api/leads`);
+        const data = await res.json();
+        const tbody = document.getElementById('waOrdersBody');
+        if (!data.leads?.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">No leads found</td></tr>';
+            return;
+        }
+        
+        // Client side pagination for leads
+        const limit = 15;
+        const totalPages = Math.ceil(data.leads.length / limit);
+        const startIndex = (waPage - 1) * limit;
+        const currentLeads = data.leads.slice(startIndex, startIndex + limit);
+
+        tbody.innerHTML = currentLeads.map(l => `
+            <tr>
+                <td><input type="checkbox" class="wa-check" data-id="${l.phone}" ${waSelected.has(l.phone) ? 'checked' : ''}></td>
+                <td><strong>${l.customerName || 'N/A'}</strong></td>
+                <td>${l.phone || '—'}</td>
+                <td colspan="3"><span class="badge" style="background:#e0f2fe;color:#0284c7;padding:2px 6px;border-radius:4px;font-size:11px;">Lead</span> Status: ${l.leadStatus || 'New'}</td>
+                <td><button class="btn-wa-send" onclick="sendSingleWA(null, '${l.phone}', '${(l.customerName||'').replace(/'/g,"\\'")}')">📱 Send</button></td>
+            </tr>
+        `).join('');
+
+        // Checkbox events
+        tbody.querySelectorAll('.wa-check').forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (cb.checked) waSelected.add(cb.dataset.id); else waSelected.delete(cb.dataset.id);
+                updateBulkWABtn();
+            });
+        });
+
+        // Pagination
+        const pagDiv = document.getElementById('waOrdersPagination');
+        if (totalPages > 1) {
+            pagDiv.innerHTML = `
+                <button class="btn btn-outline" ${waPage <= 1 ? 'disabled' : ''} onclick="waPage--;loadWALeads()">← Prev</button>
+                <span>Page ${waPage} of ${totalPages}</span>
+                <button class="btn btn-outline" ${waPage >= totalPages ? 'disabled' : ''} onclick="waPage++;loadWALeads()">Next →</button>
+            `;
+        } else pagDiv.innerHTML = '';
+    } catch (e) {
+        document.getElementById('waOrdersBody').innerHTML = '<tr><td colspan="7" class="loading-cell">Error loading leads</td></tr>';
+    }
+}
+
 function updateBulkWABtn() {
     const btn = document.getElementById('btnBulkWA');
     btn.disabled = waSelected.size === 0;
     btn.textContent = waSelected.size > 0 ? `📤 Send to ${waSelected.size} Selected` : '📤 Bulk Send to Selected';
 }
 
-async function sendSingleWA(orderId) {
+async function sendSingleWA(orderId, phone = null, customerName = null) {
     const message = document.getElementById('waMessageText').value.trim();
     if (!message) return showToast('❌ Pehle message likhein ya template select karein!', 'error');
 
     if (!confirm('WhatsApp message bhejna hai is customer ko?')) return;
 
     try {
+        const payload = { message };
+        if (orderId) payload.orderId = orderId;
+        if (phone) payload.phone = phone;
+        if (customerName) payload.customerName = customerName;
+
         const res = await fetch(`${API}/api/whatsapp/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId, message })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success) {
