@@ -5,6 +5,10 @@ import OrdersTable from './components/OrdersTable'
 import Chat from './components/Chat'
 import Analytics from './components/Analytics'
 import Broadcast from './components/Broadcast'
+import Leads from './components/Leads'
+import CallCenter from './components/CallCenter'
+import ReorderHistory from './components/ReorderHistory'
+import ExcelUpload from './components/ExcelUpload'
 
 function App() {
   const [activeTab, setActiveTab] = useState('orders')
@@ -22,6 +26,10 @@ function App() {
           {activeTab === 'orders' && <OrdersTable />}
           {activeTab === 'chat' && <Chat />}
           {activeTab === 'broadcast' && <Broadcast />}
+          {activeTab === 'leads' && <Leads />}
+          {activeTab === 'calls' && <CallCenter />}
+          {activeTab === 'reorders' && <ReorderHistory />}
+          {activeTab === 'upload' && <ExcelUpload />}
           {activeTab === 'analytics' && <Analytics />}
         </div>
       </main>

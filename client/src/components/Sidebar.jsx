@@ -5,6 +5,10 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'orders', label: 'Delivered Orders', icon: '📦' },
     { id: 'chat', label: 'WhatsApp Chat', icon: '💬' },
     { id: 'broadcast', label: 'Broadcast', icon: '📤' },
+    { id: 'leads', label: 'Leads (CRM)', icon: '👥' },
+    { id: 'calls', label: 'AI Calling', icon: '📞' },
+    { id: 'reorders', label: 'Reorder History', icon: '🔄' },
+    { id: 'upload', label: 'Upload Excel', icon: '📥' },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
   ]
 

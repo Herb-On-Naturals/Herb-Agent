@@ -175,7 +175,7 @@ const requireAuth = (req, res, next) => {
 app.use(requireAuth);
 
 // Static Files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 // ==================== AUTH ROUTES ====================
 app.get('/api/auth/status', (req, res) => {
