@@ -1173,28 +1173,30 @@ async function loadConversations() {
         const res = await fetch(`${API}/api/bot/conversations`);
         const data = await res.json();
         if (!data.conversations?.length) {
-            listEl.innerHTML = '<div class="chat-list-empty">No conversations yet.<br>Click "🤖 AI Chat" on any order to start!</div>';
+            listEl.innerHTML = '<div class="wa-empty-list">No conversations yet.<br>Click "🤖 AI Chat" on any order to start!</div>';
             return;
         }
         listEl.innerHTML = data.conversations.map(c => {
             const isActive = c._id === currentConvId;
             const timeStr = c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
-            const statusLabel = c.status === 'reordered' ? '✅ Reordered' : c.status === 'interested' ? '💛 Interested' : c.status === 'not_interested' ? '❌ Not Int.' : '🔵 Active';
+            const statusLabel = c.status === 'reordered' ? '✅' : c.status === 'interested' ? '💛' : c.status === 'not_interested' ? '❌' : '🔵';
             return `
-                <div class="chat-list-item ${isActive ? 'active' : ''}" onclick="openChat('${c._id}')">
-                    <div class="chat-item-avatar">${c.status === 'reordered' ? '✅' : '👤'}</div>
-                    <div class="chat-item-info">
-                        <div class="chat-item-name">${c.customerName || 'Customer'}</div>
-                        <div class="chat-item-preview">${c.originalOrderId || c.phone || ''}</div>
-                    </div>
-                    <div class="chat-item-meta">
-                        <div class="chat-item-time">${timeStr}</div>
-                        <div class="chat-item-badge ${c.status}">${statusLabel}</div>
+                <div class="wa-chat-item ${isActive ? 'active' : ''}" onclick="openChat('${c._id}')">
+                    <div class="wa-chat-item-avatar">${c.status === 'reordered' ? '✅' : '👤'}</div>
+                    <div class="wa-chat-item-info">
+                        <div class="wa-chat-item-top">
+                            <span class="wa-chat-item-name">${c.customerName || 'Customer'}</span>
+                            <span class="wa-chat-item-time">${timeStr}</span>
+                        </div>
+                        <div class="wa-chat-item-bottom">
+                            <span class="wa-chat-item-preview">${c.originalOrderId || c.phone || ''}</span>
+                            <span class="wa-chat-item-badge" title="${c.status}">${statusLabel}</span>
+                        </div>
                     </div>
                 </div>`;
         }).join('');
     } catch (e) {
-        listEl.innerHTML = '<div class="chat-list-empty">❌ Error loading conversations</div>';
+        listEl.innerHTML = '<div class="wa-empty-list">❌ Error loading conversations</div>';
     }
 }
 
@@ -1212,7 +1214,8 @@ async function openChat(convId) {
         document.getElementById('chatCustName').textContent = conv.customerName || 'Customer';
         const statusEl = document.getElementById('chatConvStatus');
         statusEl.textContent = conv.status;
-        statusEl.className = `conv-status ${conv.status}`;
+        statusEl.className = `wa-conv-status ${conv.status}`;
+        statusEl.style.display = 'inline-block';
         document.getElementById('chatOrderInfo').textContent = conv.originalOrderId ? `Order: ${conv.originalOrderId}` : '';
 
         // Show chat panel, hide empty
@@ -1225,17 +1228,17 @@ async function openChat(convId) {
             const isBot = m.role === 'assistant';
             const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
             return `
-                <div class="chat-bubble ${isBot ? 'bot' : 'user'}">
-                    <div class="bubble-label">${isBot ? '🤖 Herb Agent AI' : '👤 Customer'}</div>
-                    <div>${m.content}</div>
-                    <div class="bubble-time">${timeStr}</div>
+                <div class="wa-message ${isBot ? 'wa-msg-out' : 'wa-msg-in'}">
+                    ${!isBot ? `<div class="wa-msg-author">~ ${conv.customerName || 'Customer'}</div>` : ''}
+                    <div class="wa-msg-text">${m.content}</div>
+                    <div class="wa-msg-meta">${timeStr}${isBot ? '<svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.8 1.4 10.4 0 5.1 5.3 2.5 2.7 1.1 4.1l4 4 6.7-6.7zM16 4.1l-1.4-1.4-4 4L12 8.1l4-4z"></path></svg>' : ''}</div>
                 </div>`;
         }).join('');
         thread.scrollTop = thread.scrollHeight;
 
         // Highlight in sidebar
-        document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.chat-list-item').forEach(el => {
+        document.querySelectorAll('.wa-chat-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.wa-chat-item').forEach(el => {
             if (el.onclick?.toString().includes(convId)) el.classList.add('active');
         });
 
@@ -1258,15 +1261,15 @@ async function simulateReply() {
 
     // Add user message immediately
     thread.innerHTML += `
-        <div class="chat-bubble user">
-            <div class="bubble-label">👤 Customer</div>
-            <div>${message}</div>
-            <div class="bubble-time">Just now</div>
+        <div class="wa-message wa-msg-in">
+            <div class="wa-msg-author">~ Customer</div>
+            <div class="wa-msg-text">${message}</div>
+            <div class="wa-msg-meta">Just now</div>
         </div>`;
     thread.scrollTop = thread.scrollHeight;
 
     // Add typing indicator
-    thread.innerHTML += `<div class="chat-bubble bot" id="typingBubble"><div class="bubble-label">🤖 Herb Agent AI</div><div>⏳ Typing...</div></div>`;
+    thread.innerHTML += `<div class="wa-message wa-msg-out" id="typingBubble"><div class="wa-msg-text">...</div></div>`;
     thread.scrollTop = thread.scrollHeight;
 
     try {
@@ -1282,10 +1285,9 @@ async function simulateReply() {
 
         if (data.success) {
             thread.innerHTML += `
-                <div class="chat-bubble bot">
-                    <div class="bubble-label">🤖 Herb Agent AI</div>
-                    <div>${data.reply}</div>
-                    <div class="bubble-time">Just now · Intent: ${data.intent}</div>
+                <div class="wa-message wa-msg-out">
+                    <div class="wa-msg-text">${data.reply}</div>
+                    <div class="wa-msg-meta">Just now <svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.8 1.4 10.4 0 5.1 5.3 2.5 2.7 1.1 4.1l4 4 6.7-6.7zM16 4.1l-1.4-1.4-4 4L12 8.1l4-4z"></path></svg></div>
                 </div>`;
             thread.scrollTop = thread.scrollHeight;
 
@@ -1293,15 +1295,14 @@ async function simulateReply() {
             if (data.conversationStatus) {
                 const statusEl = document.getElementById('chatConvStatus');
                 statusEl.textContent = data.conversationStatus;
-                statusEl.className = `conv-status ${data.conversationStatus}`;
+                statusEl.className = `wa-conv-status ${data.conversationStatus}`;
             }
 
             if (data.reorderCreated) {
                 showToast(`🎉 Auto-Reorder created! Order: ${data.newOrderId}`, 'success');
                 thread.innerHTML += `
-                    <div class="chat-bubble bot" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);">
-                        <div class="bubble-label" style="color:var(--accent)">✅ AUTO-REORDER</div>
-                        <div>Order ${data.newOrderId} automatically created!</div>
+                    <div class="wa-message wa-msg-out" style="background:#e8f5e9;">
+                        <div class="wa-msg-text" style="font-weight:600;color:#2e7d32">✅ AUTO-REORDER: Order ${data.newOrderId} created!</div>
                     </div>`;
                 thread.scrollTop = thread.scrollHeight;
             }

@@ -188,53 +188,89 @@
     </section>
 
     <!-- ===== TAB: CHAT ===== -->
-    <section class="tab-content" id="tab-chat">
-        <div class="panel">
-            <!-- ===== BOT CONVERSATIONS: WhatsApp-Style Layout ===== -->
-            <div class="panel-header">
-                <h2>💬 WhatsApp Chat</h2>
-                <button class="btn btn-outline" id="btnRefreshConvs">🔄 Refresh</button>
+    <section class="tab-content" id="tab-chat" style="padding:0;">
+        <div class="wa-container">
+            <!-- LEFT PANEL: Chat List -->
+            <div class="wa-left-panel">
+                <div class="wa-header">
+                    <div class="wa-header-avatar">🤖</div>
+                    <div class="wa-header-icons">
+                        <button class="wa-icon-btn" title="Status" id="btnRefreshConvs">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12.072 1.761a10.05 10.05 0 0 0-9.303 5.65.977.977 0 0 0 1.756.855 8.098 8.098 0 0 1 7.496-4.553.977.977 0 1 0 .051-1.952zm-1.131 22.04c2.146.126 4.316-.363 6.136-1.401a.977.977 0 0 0-.97-1.696 8.096 8.096 0 0 1-4.945 1.13.977.977 0 1 0-.221 1.967zm8.303-3.921A10.051 10.051 0 0 0 22.1 6.842a.977.977 0 1 0-1.897-.48 8.096 8.096 0 0 1-2.302 10.512.977.977 0 0 0 1.343 1.006z"></path></svg>
+                        </button>
+                        <button class="wa-icon-btn" title="New Chat">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.005 3.175H4.674C3.642 3.175 3 3.789 3 4.821V21.02l3.544-3.514h12.461c1.033 0 2.064-1.06 2.064-2.093V4.821c-.001-1.032-1.032-1.646-2.064-1.646zm-4.989 9.869H7.041V11.1h6.975v1.944zm3-4H7.041V7.1h9.975v1.944z"></path></svg>
+                        </button>
+                        <button class="wa-icon-btn" title="Menu">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="wa-search">
+                    <div class="wa-search-inner">
+                        <span class="wa-search-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15.009 13.805h-.636l-.22-.219a5.184 5.184 0 0 0 1.256-3.386 5.207 5.207 0 1 0-5.207 5.208 5.183 5.183 0 0 0 3.385-1.255l.221.22v.635l4.004 3.999 1.194-1.195-3.997-4.007zm-4.808 0a3.605 3.605 0 1 1 0-7.21 3.605 3.605 0 0 1 0 7.21z"></path></svg>
+                        </span>
+                        <input type="text" placeholder="Search or start new chat" class="wa-search-input">
+                    </div>
+                </div>
+                <div class="wa-chat-list" id="chatList">
+                    <div class="wa-empty-list">No conversations yet.<br>Click "🤖 AI Chat" on any order to start!</div>
+                </div>
             </div>
-            <div class="chat-layout">
-                <!-- LEFT: Conversation List -->
-                <div class="chat-list" id="chatList">
-                    <div class="chat-list-empty">No conversations yet.<br>Click "🤖 AI Chat" on any order to start!
+
+            <!-- RIGHT PANEL: Chat Area -->
+            <div class="wa-right-panel" id="chatPanel">
+                <!-- Empty State -->
+                <div class="wa-empty-state" id="chatPanelEmpty">
+                    <div class="wa-empty-icon-wrap">
+                        <svg viewBox="0 0 24 24" width="80" height="80" style="opacity: 0.1;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12c0 2.17.69 4.18 1.86 5.84L3 22l4.16-.86C8.82 22.31 10.83 23 13 23c5.52 0 10-4.48 10-10S18.52 2 13 2zm0 19.1c-1.89 0-3.69-.53-5.21-1.47l-3.34.69.69-3.34A8.02 8.02 0 0 1 4.1 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"></path></svg>
+                    </div>
+                    <h3>WhatsApp for CRM</h3>
+                    <p>Send and receive messages seamlessly with your AI bot.</p>
+                    <div style="margin-top:20px; font-size:12px; color:var(--text-muted);">
+                        🔒 End-to-end encrypted
                     </div>
                 </div>
 
-                <!-- RIGHT: Chat Panel -->
-                <div class="chat-panel" id="chatPanel">
-                    <div class="chat-panel-empty" id="chatPanelEmpty">
-                        <div class="chat-panel-empty-icon">💬</div>
-                        <h3>Select a conversation</h3>
-                        <p>Choose a conversation from the list to view the full chat history</p>
+                <!-- Active Chat -->
+                <div class="wa-active-chat" id="chatPanelActive" style="display:none;">
+                    <div class="wa-chat-header">
+                        <div class="wa-chat-header-info">
+                            <div class="wa-avatar">👤</div>
+                            <div class="wa-chat-title">
+                                <span class="wa-name" id="chatCustName">Customer Name</span>
+                                <span class="wa-status-text" id="chatOrderInfo">Order: #123</span>
+                                <span class="wa-conv-status" id="chatConvStatus" style="display:none;">active</span>
+                            </div>
+                        </div>
+                        <div class="wa-header-icons">
+                            <button class="wa-icon-btn" title="Search">
+                                <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15.9 14.3H15l-.3-.3c1-1.1 1.6-2.7 1.6-4.3 0-3.7-3-6.7-6.7-6.7S3 6 3 9.7s3 6.7 6.7 6.7c1.6 0 3.2-.6 4.3-1.6l.3.3v.8l5.1 5.1 1.5-1.5-5-5.2zm-6.2 0c-2.6 0-4.6-2.1-4.6-4.6s2.1-4.6 4.6-4.6 4.6 2.1 4.6 4.6-2 4.6-4.6 4.6z"></path></svg>
+                            </button>
+                            <button class="wa-icon-btn" title="Menu">
+                                <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"></path></svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="chat-panel-active" id="chatPanelActive" style="display:none">
-                        <!-- Chat Header -->
-                        <div class="chat-header-bar">
-                            <div class="chat-header-info">
-                                <div class="chat-avatar">🤖</div>
-                                <div>
-                                    <strong id="chatCustName">Customer</strong>
-                                    <span class="conv-status active" id="chatConvStatus">active</span>
-                                </div>
-                            </div>
-                            <div class="chat-header-meta">
-                                <span id="chatOrderInfo">—</span>
-                            </div>
-                        </div>
 
-                        <!-- Messages -->
-                        <div class="chat-thread" id="chatThread"></div>
+                    <div class="wa-chat-body" id="chatThread">
+                        <!-- Messages go here -->
+                    </div>
 
-                        <!-- Simulate Input -->
-                        <div class="chat-input-bar">
-                            <input type="text" id="chatSimInput" class="form-input"
-                                placeholder="Customer ka reply simulate karo (testing ke liye)...">
-                            <button class="btn btn-accent" id="btnSimSend">➤ Send</button>
+                    <div class="wa-chat-footer">
+                        <button class="wa-icon-btn" title="Smiley">
+                            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M9.153 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zm-3.204 1.362c-.026-.307-.131 5.218 6.063 5.551 6.066-.25 6.066-5.551 6.066-5.551-6.078 1.416-12.129 0-12.129 0zm11.363-1.108s-.669 1.959-5.051 1.959c-3.379 0-5.549-2.319-5.549-2.319s7.418-.097 10.6-.097a8.5 8.5 0 0 0-.001.457zM14.846 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962z"></path></svg>
+                        </button>
+                        <button class="wa-icon-btn" title="Attach">
+                            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M1.816 15.556v.002c0 1.502.584 2.912 1.646 3.972s2.472 1.647 3.974 1.647a5.58 5.58 0 0 0 3.972-1.645l9.547-9.548c.769-.768 1.147-1.767 1.058-2.817-.079-.968-.548-1.927-1.319-2.698-1.594-1.592-4.068-1.711-5.517-.262l-7.916 7.915c-.881.881-.792 2.25.214 3.261.959.958 2.423 1.053 3.263.215l5.511-5.512c.28-.28.267-.722.053-.936l-.244-.244c-.191-.191-.567-.349-.957.04l-5.506 5.506c-.18.18-.635.127-.976-.214-.098-.097-.576-.613-.213-.973l7.915-7.917c.818-.817 2.267-.699 3.23.262.5.501.802 1.1.849 1.685.051.573-.156 1.111-.589 1.543l-9.547 9.549a3.97 3.97 0 0 1-2.829 1.171 3.975 3.975 0 0 1-2.83-1.173 3.973 3.973 0 0 1-1.172-2.828c0-1.071.415-2.076 1.172-2.83l7.209-7.211c.157-.157.264-.579.028-.814L11.5 4.36a.572.572 0 0 0-.834.018l-7.205 7.207a5.577 5.577 0 0 0-1.645 3.971z"></path></svg>
+                        </button>
+                        <div class="wa-chat-input-wrapper">
+                            <input type="text" id="chatSimInput" class="wa-chat-input" placeholder="Simulate customer reply...">
                         </div>
-                        <p class="wa-hint" style="padding:0 12px 8px">💡 Testing: Customer ka reply yahan type karo, AI
-                            Bot automatically reply karega</p>
+                        <button class="wa-icon-btn" id="btnSimSend" title="Send">
+                            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M1.101 21.757 23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path></svg>
+                        </button>
                     </div>
                 </div>
             </div>
