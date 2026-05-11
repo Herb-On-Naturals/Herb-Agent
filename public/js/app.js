@@ -1244,13 +1244,31 @@ async function bulkSendWA() {
 document.addEventListener('DOMContentLoaded', () => {
     initChatEvents();
     
-    // Real-time polling for chat updates (Every 5 seconds)
-    setInterval(() => {
-        loadConversations();
-        if (currentConvId) {
-            silentRefreshChat(currentConvId);
+    // Initialize Socket.io for true real-time updates
+    const socket = io();
+    
+    socket.on('chat:message', (data) => {
+        console.log('📨 New message via socket:', data);
+        loadConversations(); // Refresh the list
+        
+        // If the message belongs to the currently open chat, append it
+        if (currentConvId === data.conversationId) {
+            const thread = document.getElementById('chatThread');
+            if (thread) {
+                const m = data.message;
+                const isBot = m.role === 'assistant';
+                const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+                
+                thread.innerHTML += `
+                    <div class="wa-message ${isBot ? 'wa-msg-out' : 'wa-msg-in'}">
+                        ${!isBot ? `<div class="wa-msg-author">~ Customer</div>` : ''}
+                        <div class="wa-msg-text">${m.content}</div>
+                        <div class="wa-msg-meta">${timeStr}${isBot ? '<svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.8 1.4 10.4 0 5.1 5.3 2.5 2.7 1.1 4.1l4 4 6.7-6.7zM16 4.1l-1.4-1.4-4 4L12 8.1l4-4z"></path></svg>' : ''}</div>
+                    </div>`;
+                thread.scrollTop = thread.scrollHeight;
+            }
         }
-    }, 5000);
+    });
 });
 
 // ==================== AI BOT CONVERSATIONS ====================

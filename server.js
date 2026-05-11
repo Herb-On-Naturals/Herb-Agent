@@ -11,6 +11,17 @@ const cron = require('node-cron');
 require('dotenv').config();
 
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+app.set('socketio', io);
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
 const MongoStore = connectMongo.default || connectMongo.MongoStore || connectMongo;
@@ -391,7 +402,7 @@ cron.schedule('*/5 * * * *', async () => {
 // ==================== START ====================
 async function start() {
     const dbOk = await connectDB();
-    app.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', () => {
         console.log('╔══════════════════════════════════════════════╗');
         console.log('║    🤖 HERB AGENT STARTED 🤖                  ║');
         console.log(`║    Port: ${PORT}                                  ║`);

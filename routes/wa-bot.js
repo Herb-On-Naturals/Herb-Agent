@@ -426,7 +426,8 @@ async function handleMetaWebhookPost(req, res) {
                 if (change.value.messages) {
                     for (const msg of change.value.messages) {
                         const incoming = msg.text?.body || '';
-                        if (incoming) await handleIncomingMessage(msg.from, incoming);
+                        const io = req.app.get('socketio');
+                        if (incoming) await handleIncomingMessage(msg.from, incoming, null, io);
                     }
                 }
             }
@@ -442,7 +443,7 @@ function handleMetaWebhookVerify(req, res) {
 }
 
 // ==================== CORE HANDLER ====================
-async function handleIncomingMessage(senderPhone, messageText, senderName) {
+async function handleIncomingMessage(senderPhone, messageText, senderName, io = null) {
     const cleanPhone = senderPhone.replace(/\D/g, '').slice(-10);
     let conv = await Conversation.findOne({ phone: { $regex: cleanPhone }, status: 'active' }).sort({ lastMessageAt: -1 });
 
@@ -456,10 +457,18 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
         });
     }
 
-    conv.messages.push({ role: 'user', content: messageText });
+    const newMessage = { role: 'user', content: messageText, timestamp: new Date() };
+    conv.messages.push(newMessage);
     
     conv.lastMessageAt = new Date();
     await conv.save();
+
+    if (io) {
+        io.emit('chat:message', {
+            conversationId: conv._id,
+            message: newMessage
+        });
+    }
 }
 
 async function createAutoReorder(conv) {
@@ -530,7 +539,8 @@ async function createAutoReorder(conv) {
 // ==================== SIMULATE ====================
 router.post('/bot/simulate', async (req, res) => {
     const { phone, message } = req.body;
-    await handleIncomingMessage(phone, message);
+    const io = req.app.get('socketio');
+    await handleIncomingMessage(phone, message, null, io);
     const conv = await Conversation.findOne({ phone: { $regex: phone.slice(-10) } }).sort({ lastMessageAt: -1 });
     const last = conv.messages[conv.messages.length - 1];
     res.json({
@@ -552,13 +562,22 @@ router.post('/bot/agent-reply', async (req, res) => {
             return res.status(404).json({ success: false, message: 'No active conversation found' });
         }
         
-        conv.messages.push({ role: 'assistant', content: message });
+        const newMessage = { role: 'assistant', content: message, timestamp: new Date() };
+        conv.messages.push(newMessage);
         conv.lastMessageAt = new Date();
         
         // Send via WhatsApp
         await sendWhatsApp(phone, message);
         
         await conv.save();
+        
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('chat:message', {
+                conversationId: conv._id,
+                message: newMessage
+            });
+        }
         
         res.json({ success: true });
     } catch (err) {
