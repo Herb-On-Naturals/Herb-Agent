@@ -458,50 +458,7 @@ async function handleIncomingMessage(senderPhone, messageText, senderName) {
 
     conv.messages.push({ role: 'user', content: messageText });
     
-    // Using Rule-Based Response instead of AI to save tokens
-    const responseText = await buildRuleBasedResponse(messageText, conv);
-    const intent = extractIntent(responseText);
-    const sentiment = 'neutral';
-    
-    /* AI Code (Commented out)
-    const aiResponse = await getAIResponse(conv.messages.map(m => ({ role: m.role, content: m.content })));
-    const responseText = aiResponse.content;
-    const intent = extractIntent(responseText);
-    const sentiment = extractSentiment(responseText);
-    */
-    
-    conv.messages.push({ role: 'assistant', content: responseText, sentiment });
     conv.lastMessageAt = new Date();
-
-    // Check for Reorder intent
-    if (intent === 'REORDER' && !conv.reorderCreated) {
-        try {
-            const reorderResult = await createAutoReorder(conv);
-            if (reorderResult.success) {
-                conv.status = 'reordered';
-                conv.reorderCreated = true;
-                conv.newOrderId = reorderResult.newOrderId;
-                
-                const confirmMsg = `✅ Aapka order confirm ho gaya hai! 🎉\n📦 Order ID: ${reorderResult.newOrderId}\n💰 Total: ₹${reorderResult.total}\n🚚 Delivery: COD. Jaldi hi dispatch hoga!`;
-                await sendWhatsApp(senderPhone, confirmMsg);
-                conv.messages.push({ role: 'assistant', content: confirmMsg, sentiment: 'positive' });
-            }
-        } catch (e) {
-            console.error('Reorder creation failed:', e.message);
-        }
-    } else {
-        // Extract image URL if present
-        const imageMatch = responseText.match(/\[IMAGE:(https?:\/\/[^\]]+)\]/);
-        let imageUrl = null;
-        let textToSend = responseText;
-        if (imageMatch) {
-            imageUrl = imageMatch[1];
-            textToSend = responseText.replace(imageMatch[0], '').trim();
-        }
-
-        await sendWhatsApp(senderPhone, cleanMessage(textToSend), imageUrl);
-    }
-
     await conv.save();
 }
 

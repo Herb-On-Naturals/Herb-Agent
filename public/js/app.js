@@ -1243,6 +1243,14 @@ async function bulkSendWA() {
 // Init WhatsApp on load
 document.addEventListener('DOMContentLoaded', () => {
     initChatEvents();
+    
+    // Real-time polling for chat updates (Every 5 seconds)
+    setInterval(() => {
+        loadConversations();
+        if (currentConvId) {
+            silentRefreshChat(currentConvId);
+        }
+    }, 5000);
 });
 
 // ==================== AI BOT CONVERSATIONS ====================
@@ -1349,6 +1357,38 @@ async function openChat(convId) {
         document.getElementById('chatSimInput').focus();
     } catch (e) {
         showToast('❌ Error loading chat', 'error');
+    }
+}
+
+async function silentRefreshChat(convId) {
+    try {
+        const res = await fetch(`${API}/api/bot/conversations/${convId}`);
+        const data = await res.json();
+        if (!data.conversation) return;
+
+        const conv = data.conversation;
+        const thread = document.getElementById('chatThread');
+        if (!thread) return;
+        
+        const currentCount = thread.querySelectorAll('.wa-message').length;
+        const newMessages = conv.messages.filter(m => m.role !== 'system');
+        const newCount = newMessages.length;
+        
+        if (currentCount !== newCount) {
+            thread.innerHTML = newMessages.map(m => {
+                const isBot = m.role === 'assistant';
+                const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+                return `
+                    <div class="wa-message ${isBot ? 'wa-msg-out' : 'wa-msg-in'}">
+                        ${!isBot ? `<div class="wa-msg-author">~ ${conv.customerName || 'Customer'}</div>` : ''}
+                        <div class="wa-msg-text">${m.content}</div>
+                        <div class="wa-msg-meta">${timeStr}${isBot ? '<svg viewBox="0 0 16 11" width="16" height="11"><path fill="currentColor" d="M11.8 1.4 10.4 0 5.1 5.3 2.5 2.7 1.1 4.1l4 4 6.7-6.7zM16 4.1l-1.4-1.4-4 4L12 8.1l4-4z"></path></svg>' : ''}</div>
+                    </div>`;
+            }).join('');
+            thread.scrollTop = thread.scrollHeight;
+        }
+    } catch (e) {
+        console.error('Silent refresh error:', e);
     }
 }
 
