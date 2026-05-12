@@ -20,6 +20,7 @@ import AuditLogs from './components/AuditLogs'
 import AgentPerformance from './components/AgentPerformance'
 import ApiLogs from './components/ApiLogs'
 import TaskManager from './components/TaskManager'
+import ReorderReminders from './components/ReorderReminders'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -114,8 +115,9 @@ function App() {
               {activeTab === 'chat'       && <Chat />}
               {activeTab === 'broadcast'  && <Broadcast />}
               {activeTab === 'calls'      && <CallCenter />}
-              {activeTab === 'orders'     && <OrdersTable />}
+               {activeTab === 'orders'     && <OrdersTable />}
               {activeTab === 'reorders'   && <ReorderHistory />}
+              {activeTab === 'reorder-reminders' && <ReorderReminders />}
               {activeTab === 'upload'     && <ExcelUpload />}
               {activeTab === 'analytics'  && <Analytics />}
               {activeTab === 'performance' && <AgentPerformance />}

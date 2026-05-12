@@ -25,6 +25,7 @@ const navGroups = [
       { id: 'calendar', label: 'Calendar', icon: '📅', roles: ['Admin', 'Manager', 'Agent'] },
       { id: 'orders', label: 'Orders', icon: '📦', roles: ['Admin', 'Manager', 'Agent'] },
       { id: 'reorders', label: 'Reorder History', icon: '🔄', roles: ['Admin', 'Manager'] },
+      { id: 'reorder-reminders', label: 'Reorder Reminders', icon: '⏰', roles: ['Admin', 'Manager', 'Agent'] },
       { id: 'upload', label: 'Import Data', icon: '📥', roles: ['Admin'] },
     ]
   },

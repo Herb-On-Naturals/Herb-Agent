@@ -191,6 +191,23 @@ router.get('/stats', async (req, res) => {
                 recentReorders: reordersList
             }
         });
+// ==================== GET REORDER REMINDERS ====================
+router.get('/reorder-reminders', async (req, res) => {
+    try {
+        const now = new Date();
+        // 30 days ago to 25 days ago (ideal window for 30-day course reminder)
+        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        const twentyFiveDaysAgo = new Date(now.getTime() - (25 * 24 * 60 * 60 * 1000));
+
+        const reminders = await Order.find({
+            status: 'Delivered',
+            deliveredAt: { 
+                $gte: thirtyDaysAgo.toISOString(), 
+                $lte: twentyFiveDaysAgo.toISOString() 
+            }
+        }).sort({ deliveredAt: 1 }).limit(100).lean();
+
+        res.json({ success: true, reminders, count: reminders.length });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
