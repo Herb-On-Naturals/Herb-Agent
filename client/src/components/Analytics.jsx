@@ -20,6 +20,7 @@ const products = [
 
 export default function Analytics() {
   const [stats, setStats] = useState(null)
+  const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -29,10 +30,21 @@ export default function Analytics() {
   const fetchStats = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/stats')
-      const data = await res.json()
-      if (data.success) {
-        setStats(data.stats)
+      const [res1, res2] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/analytics/revenue?days=7')
+      ])
+      const data1 = await res1.json()
+      const data2 = await res2.json()
+      
+      if (data1.success) setStats(data1.stats)
+      if (data2.success) {
+        const formatted = data2.dailyRevenue.map(d => ({
+          name: d._id,
+          Revenue: d.revenue,
+          Orders: d.orders
+        }))
+        setChartData(formatted)
       }
     } catch (err) {
       console.error('Error fetching stats:', err)
@@ -83,27 +95,27 @@ export default function Analytics() {
         {/* Sales Report (Line Chart) */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
-            <h4 className="font-bold text-slate-900">Sales Report</h4>
+            <h4 className="font-bold text-slate-900">Sales & Revenue Report</h4>
             <div className="flex gap-4 text-xs">
               <div className="flex items-center gap-1">
                 <span className="w-3 h-3 bg-indigo-600 rounded-full"></span>
-                <span className="text-slate-600 font-medium">Incomes</span>
+                <span className="text-slate-600 font-medium">Revenue (₹)</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="w-3 h-3 bg-blue-400 rounded-full"></span>
-                <span className="text-slate-600 font-medium">Expenses</span>
+                <span className="text-slate-600 font-medium">Orders</span>
               </div>
             </div>
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData.length > 0 ? chartData : mockData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorIncomes" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
                   </linearGradient>
-                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#60a5fa" stopOpacity={0}/>
                   </linearGradient>
@@ -112,8 +124,8 @@ export default function Analytics() {
                 <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <Tooltip />
-                <Area type="monotone" dataKey="Incomes" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorIncomes)" dot={{ r: 4, strokeWidth: 2, fill: '#white' }} />
-                <Area type="monotone" dataKey="Expenses" stroke="#60a5fa" strokeWidth={3} fillOpacity={1} fill="url(#colorExpenses)" dot={{ r: 4, strokeWidth: 2, fill: '#white' }} />
+                <Area type="monotone" dataKey="Revenue" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={{ r: 4, strokeWidth: 2, fill: '#white' }} />
+                <Area type="monotone" dataKey="Orders" stroke="#60a5fa" strokeWidth={3} fillOpacity={1} fill="url(#colorOrders)" dot={{ r: 4, strokeWidth: 2, fill: '#white' }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
