@@ -39,6 +39,7 @@ const navGroups = [
     items: [
       { id: 'settings', label: 'Settings', icon: '⚙️' },
       { id: 'logs', label: 'Audit Logs', icon: '📜' },
+      { id: 'apilogs', label: 'API Logs', icon: '📟' },
     ]
   }
 ]

@@ -18,6 +18,7 @@ import Calendar from './components/Calendar'
 import Deals from './components/Deals'
 import AuditLogs from './components/AuditLogs'
 import AgentPerformance from './components/AgentPerformance'
+import ApiLogs from './components/ApiLogs'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -102,6 +103,7 @@ function App() {
               {activeTab === 'performance' && <AgentPerformance />}
               {activeTab === 'settings'   && <Settings onLogout={handleLogout} />}
               {activeTab === 'logs'       && <AuditLogs />}
+              {activeTab === 'apilogs'    && <ApiLogs />}
             </>
           )}
         </div>
