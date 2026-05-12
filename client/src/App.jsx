@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
@@ -14,6 +14,8 @@ import ExcelUpload from './components/ExcelUpload'
 import Analytics from './components/Analytics'
 import LoginPage from './components/LoginPage'
 import Settings from './components/Settings'
+import Calendar from './components/Calendar'
+import Deals from './components/Deals'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -21,6 +23,19 @@ function App() {
   )
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem('crm_dark') === 'true'
+  )
+
+  // Apply dark mode to html element
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('crm_dark', darkMode)
+  }, [darkMode])
 
   const handleNavigate = (tab) => {
     setActiveTab(tab)
@@ -41,7 +56,12 @@ function App() {
       <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} />
 
       <main className="flex-1 ml-64 flex flex-col min-h-screen">
-        <Header activeTab={activeTab} onNavigate={handleNavigate} />
+        <Header
+          activeTab={activeTab}
+          onNavigate={handleNavigate}
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode(p => !p)}
+        />
 
         <div className="p-6 flex-1">
           {selectedCustomer ? (
@@ -50,7 +70,9 @@ function App() {
             <>
               {activeTab === 'dashboard'  && <Dashboard onNavigate={handleNavigate} />}
               {activeTab === 'contacts'   && <Contacts onSelectCustomer={setSelectedCustomer} />}
+              {activeTab === 'deals'      && <Deals />}
               {activeTab === 'pipeline'   && <Leads onSelectCustomer={setSelectedCustomer} />}
+              {activeTab === 'calendar'   && <Calendar />}
               {activeTab === 'chat'       && <Chat />}
               {activeTab === 'broadcast'  && <Broadcast />}
               {activeTab === 'calls'      && <CallCenter />}

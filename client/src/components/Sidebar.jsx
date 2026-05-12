@@ -6,6 +6,7 @@ const navGroups = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
       { id: 'contacts', label: 'Contacts', icon: '👥' },
+      { id: 'deals', label: 'Deals', icon: '💰' },
       { id: 'pipeline', label: 'Sales Pipeline', icon: '📋' },
     ]
   },
@@ -20,6 +21,7 @@ const navGroups = [
   {
     label: 'Business',
     items: [
+      { id: 'calendar', label: 'Calendar', icon: '📅' },
       { id: 'orders', label: 'Orders', icon: '📦' },
       { id: 'reorders', label: 'Reorder History', icon: '🔄' },
       { id: 'upload', label: 'Import Data', icon: '📥' },
@@ -56,8 +58,8 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         {navGroups.map((group) => (
-          <div key={group.label} className="mb-6">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+          <div key={group.label} className="mb-5">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -87,8 +89,12 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             A
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white truncate">Admin</p>
-            <p className="text-xs text-slate-400 truncate">admin@dealpilot.com</p>
+            <p className="text-sm font-semibold text-white truncate">
+              {localStorage.getItem('crm_username') || 'Admin'}
+            </p>
+            <p className="text-xs text-slate-400 truncate">
+              {localStorage.getItem('crm_company') || 'DealPilot CRM'}
+            </p>
           </div>
         </div>
       </div>

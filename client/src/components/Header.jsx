@@ -3,7 +3,9 @@ import React, { useState } from 'react'
 const tabTitles = {
   dashboard: { title: 'Dashboard', subtitle: 'Welcome back! Here is your overview.' },
   contacts: { title: 'Contacts', subtitle: 'Manage all your customers in one place.' },
+  deals: { title: 'Deals', subtitle: 'Track and manage your sales deals & quotations.' },
   pipeline: { title: 'Sales Pipeline', subtitle: 'Track your leads through the funnel.' },
+  calendar: { title: 'Calendar', subtitle: 'Schedule and manage your appointments.' },
   chat: { title: 'WhatsApp Chat', subtitle: 'Live messaging with your customers.' },
   broadcast: { title: 'Bulk Broadcast', subtitle: 'Send messages to groups or segments.' },
   calls: { title: 'AI Call Center', subtitle: 'Automated and manual calling system.' },
@@ -22,7 +24,7 @@ const mockNotifications = [
   { id: 5, icon: '🔄', title: 'AI Reorder', desc: 'Auto reorder triggered for Vikram', time: '3h', unread: false },
 ]
 
-export default function Header({ activeTab, onNavigate }) {
+export default function Header({ activeTab, onNavigate, darkMode, onToggleDark }) {
   const { title, subtitle } = tabTitles[activeTab] || { title: activeTab, subtitle: '' }
   const [showNotif, setShowNotif] = useState(false)
   const [notifications, setNotifications] = useState(mockNotifications)
@@ -100,6 +102,15 @@ export default function Header({ activeTab, onNavigate }) {
             </div>
           )}
         </div>
+
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={onToggleDark}
+          className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {darkMode ? '☀️' : '🌙'}
+        </button>
 
         {/* Settings */}
         <button
