@@ -38,9 +38,24 @@ export default function Settings({ onLogout }) {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   // Team
-  const [team, setTeam] = useState(getTeam())
+  const [team, setTeam] = useState([])
   const [newMember, setNewMember] = useState({ name: '', username: '', password: '', role: 'Agent' })
   const [showAddMember, setShowAddMember] = useState(false)
+
+  // Fetch team on mount
+  React.useEffect(() => {
+    fetchTeam()
+  }, [])
+
+  const fetchTeam = async () => {
+    try {
+      const res = await fetch('/api/auth/team')
+      const data = await res.json()
+      if (data.success) setTeam(data.team)
+    } catch (err) {
+      console.error('Error fetching team:', err)
+    }
+  }
 
   // WhatsApp API
   const [waToken, setWaToken] = useState(localStorage.getItem('crm_wa_token') || '')
@@ -74,27 +89,59 @@ export default function Settings({ onLogout }) {
     setPassword(''); setConfirmPassword('')
   }
 
-  const saveTeam = (updatedTeam) => {
-    setTeam(updatedTeam)
-    localStorage.setItem('crm_team', JSON.stringify(updatedTeam))
-  }
-
-  const addMember = () => {
+  const addMember = async () => {
     if (!newMember.name || !newMember.username || !newMember.password) return
-    const updated = [...team, { ...newMember, id: Date.now(), active: true }]
-    saveTeam(updated)
-    setNewMember({ name: '', username: '', password: '', role: 'Agent' })
-    setShowAddMember(false)
-    showSaved('Team member added!')
+    try {
+      const res = await fetch('/api/auth/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMember)
+      })
+      const data = await res.json()
+      if (data.success) {
+        fetchTeam()
+        setNewMember({ name: '', username: '', password: '', role: 'Agent' })
+        setShowAddMember(false)
+        showSaved('Team member added!')
+      } else {
+        setError(data.message || 'Failed to add member')
+      }
+    } catch (err) {
+      console.error('Error adding member:', err)
+      setError('Server error')
+    }
   }
 
-  const removeMember = (id) => {
+  const removeMember = async (id) => {
     if (team.length <= 1) return alert('You must have at least 1 user!')
-    saveTeam(team.filter(m => m.id !== id))
+    try {
+      const res = await fetch(`/api/auth/team/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        fetchTeam()
+        showSaved('Team member removed!')
+      }
+    } catch (err) {
+      console.error('Error removing member:', err)
+    }
   }
 
-  const toggleMember = (id) => {
-    saveTeam(team.map(m => m.id === id ? { ...m, active: !m.active } : m))
+  const toggleMember = async (id) => {
+    const member = team.find(m => m._id === id)
+    if (!member) return
+    try {
+      const res = await fetch(`/api/auth/team/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !member.active })
+      })
+      const data = await res.json()
+      if (data.success) {
+        fetchTeam()
+      }
+    } catch (err) {
+      console.error('Error toggling member:', err)
+    }
   }
 
   const saveWhatsApp = () => {
@@ -257,24 +304,24 @@ export default function Settings({ onLogout }) {
 
               <div className="space-y-3">
                 {team.map(member => (
-                  <div key={member.id} className={`flex items-center gap-4 p-4 rounded-xl border transition ${member.active ? 'border-slate-100 bg-slate-50' : 'border-slate-100 bg-slate-50 opacity-50'}`}>
+                  <div key={member._id} className={`flex items-center gap-4 p-4 rounded-xl border transition ${member.active ? 'border-slate-100 bg-slate-50' : 'border-slate-100 bg-slate-50 opacity-50'}`}>
                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {member.name[0].toUpperCase()}
+                      {member.name ? member.name[0].toUpperCase() : 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm">{member.name}</p>
+                      <p className="font-semibold text-slate-800 text-sm">{member.name || 'Unknown'}</p>
                       <p className="text-xs text-slate-400 font-mono">@{member.username}</p>
                     </div>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${roleColors[member.role] || 'bg-slate-100 text-slate-600'}`}>
                       {member.role}
                     </span>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => toggleMember(member.id)}
+                      <button onClick={() => toggleMember(member._id)}
                         className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${member.active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
                         {member.active ? 'Active' : 'Inactive'}
                       </button>
                       {member.role !== 'Admin' && (
-                        <button onClick={() => removeMember(member.id)} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition">
+                        <button onClick={() => removeMember(member._id)} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition">
                           Remove
                         </button>
                       )}

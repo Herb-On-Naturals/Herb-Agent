@@ -60,4 +60,25 @@ router.post('/team', async (req, res) => {
     }
 });
 
+// ==================== TOGGLE TEAM MEMBER ACTIVE ====================
+router.put('/team/:id', async (req, res) => {
+    try {
+        const { active } = req.body;
+        await User.findByIdAndUpdate(req.params.id, { active });
+        res.json({ success: true, message: 'User updated successfully' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ==================== REMOVE TEAM MEMBER ====================
+router.delete('/team/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
