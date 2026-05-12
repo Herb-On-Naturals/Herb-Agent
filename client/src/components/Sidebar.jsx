@@ -4,55 +4,63 @@ const navGroups = [
   {
     label: 'Main',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-      { id: 'contacts', label: 'Contacts', icon: '👥' },
-      { id: 'deals', label: 'Deals', icon: '💰' },
-      { id: 'pipeline', label: 'Sales Pipeline', icon: '📋' },
+      { id: 'dashboard', label: 'Dashboard', icon: '🏠', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'contacts', label: 'Contacts', icon: '👥', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'deals', label: 'Deals', icon: '💰', roles: ['Admin', 'Manager'] },
+      { id: 'pipeline', label: 'Sales Pipeline', icon: '📋', roles: ['Admin', 'Manager'] },
     ]
   },
   {
     label: 'Communication',
     items: [
-      { id: 'chat', label: 'WhatsApp Chat', icon: '💬' },
-      { id: 'broadcast', label: 'Bulk Broadcast', icon: '📢' },
-      { id: 'calls', label: 'AI Call Center', icon: '📞' },
+      { id: 'chat', label: 'WhatsApp Chat', icon: '💬', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'broadcast', label: 'Bulk Broadcast', icon: '📢', roles: ['Admin', 'Manager'] },
+      { id: 'calls', label: 'AI Call Center', icon: '📞', roles: ['Admin', 'Manager'] },
     ]
   },
   {
     label: 'Business',
     items: [
-      { id: 'calendar', label: 'Calendar', icon: '📅' },
-      { id: 'orders', label: 'Orders', icon: '📦' },
-      { id: 'reorders', label: 'Reorder History', icon: '🔄' },
-      { id: 'upload', label: 'Import Data', icon: '📥' },
+      { id: 'calendar', label: 'Calendar', icon: '📅', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'orders', label: 'Orders', icon: '📦', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'reorders', label: 'Reorder History', icon: '🔄', roles: ['Admin', 'Manager'] },
+      { id: 'upload', label: 'Import Data', icon: '📥', roles: ['Admin'] },
     ]
   },
   {
     label: 'Insights',
     items: [
-      { id: 'analytics', label: 'Analytics', icon: '📊' },
-      { id: 'performance', label: 'Agent Performance', icon: '🏆' },
+      { id: 'analytics', label: 'Analytics', icon: '📊', roles: ['Admin', 'Manager'] },
+      { id: 'performance', label: 'Agent Performance', icon: '🏆', roles: ['Admin'] },
     ]
   },
   {
     label: 'System',
     items: [
-      { id: 'settings', label: 'Settings', icon: '⚙️' },
-      { id: 'logs', label: 'Audit Logs', icon: '📜' },
-      { id: 'apilogs', label: 'API Logs', icon: '📟' },
+      { id: 'settings', label: 'Settings', icon: '⚙️', roles: ['Admin'] },
+      { id: 'logs', label: 'Audit Logs', icon: '📜', roles: ['Admin'] },
+      { id: 'apilogs', label: 'API Logs', icon: '📟', roles: ['Admin'] },
     ]
   }
 ]
 
-const currentUser = (() => {
-  try { return JSON.parse(localStorage.getItem('crm_current_user') || '{}') } catch { return {} }
-})()
-
 export default function Sidebar({ activeTab, setActiveTab, open, onClose }) {
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem('crm_current_user') || '{}') } catch { return { role: 'Agent' } }
+  })()
+
+  const userRole = currentUser.role || 'Agent'
+
   const handleNav = (id) => {
     setActiveTab(id)
     if (onClose) onClose() // close on mobile
   }
+
+  // Filter groups and items based on user role
+  const filteredNavGroups = navGroups.map(group => {
+    const filteredItems = group.items.filter(item => item.roles.includes(userRole))
+    return { ...group, items: filteredItems }
+  }).filter(group => group.items.length > 0) // Hide empty groups
 
   return (
     <>
@@ -83,7 +91,7 @@ export default function Sidebar({ activeTab, setActiveTab, open, onClose }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {navGroups.map((group) => (
+          {filteredNavGroups.map((group) => (
             <div key={group.label} className="mb-5">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1.5">
                 {group.label}
@@ -116,7 +124,11 @@ export default function Sidebar({ activeTab, setActiveTab, open, onClose }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{currentUser.name || 'Admin'}</p>
-              <p className="text-xs text-indigo-400 font-medium">{currentUser.role || 'Admin'}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-indigo-400 font-medium">{userRole}</p>
+                <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
+                <p className="text-[10px] text-slate-500 font-mono">@{currentUser.username || 'admin'}</p>
+              </div>
             </div>
           </div>
         </div>
