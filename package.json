@@ -4,6 +4,7 @@
   "description": "Herb Agent - AI Reordering Assistant",
   "main": "server.js",
   "scripts": {
+    "build": "cd client && npm install && npm run build",
     "start": "node server.js",
     "dev": "npx nodemon server.js",
     "prod": "pm2 start ecosystem.config.js --env production",
