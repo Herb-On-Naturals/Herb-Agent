@@ -6,21 +6,28 @@ export default function LoginPage({ onLogin }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Default credentials (can be changed in Settings)
-  const VALID_USERNAME = localStorage.getItem('crm_username') || 'admin'
-  const VALID_PASSWORD = localStorage.getItem('crm_password') || 'dealpilot123'
+  // Check against team members stored in localStorage
+  const getUsers = () => {
+    try {
+      const team = JSON.parse(localStorage.getItem('crm_team') || 'null')
+      if (team) return team
+    } catch {}
+    return [{ username: localStorage.getItem('crm_username') || 'admin', password: localStorage.getItem('crm_password') || 'dealpilot123', role: 'Admin', name: 'Admin User' }]
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    // Simulate brief loading
     await new Promise(r => setTimeout(r, 600))
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+    const users = getUsers()
+    const matched = users.find(u => u.username === username && u.password === password && u.active !== false)
+    if (matched) {
       localStorage.setItem('crm_auth', 'true')
+      localStorage.setItem('crm_current_user', JSON.stringify(matched))
       onLogin()
     } else {
-      setError('Invalid username or password. Please try again.')
+      setError('Invalid username or password.')
     }
     setLoading(false)
   }

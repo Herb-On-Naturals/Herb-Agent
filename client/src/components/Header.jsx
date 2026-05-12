@@ -24,7 +24,7 @@ const mockNotifications = [
   { id: 5, icon: '🔄', title: 'AI Reorder', desc: 'Auto reorder triggered for Vikram', time: '3h', unread: false },
 ]
 
-export default function Header({ activeTab, onNavigate, darkMode, onToggleDark }) {
+export default function Header({ activeTab, onNavigate, darkMode, onToggleDark, onMenuToggle }) {
   const { title, subtitle } = tabTitles[activeTab] || { title: activeTab, subtitle: '' }
   const [showNotif, setShowNotif] = useState(false)
   const [notifications, setNotifications] = useState(mockNotifications)
@@ -36,10 +36,19 @@ export default function Header({ activeTab, onNavigate, darkMode, onToggleDark }
   }
 
   return (
-    <header className="bg-white border-b border-slate-100 px-6 py-3.5 flex justify-between items-center sticky top-0 z-40">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-        <p className="text-xs text-slate-400">{subtitle}</p>
+    <header className="bg-white border-b border-slate-100 px-4 md:px-6 py-3.5 flex justify-between items-center sticky top-0 z-40">
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden w-9 h-9 flex items-center justify-center text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+        >
+          ☰
+        </button>
+        <div>
+          <h2 className="text-base md:text-lg font-bold text-slate-900">{title}</h2>
+          <p className="text-xs text-slate-400 hidden sm:block">{subtitle}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

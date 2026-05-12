@@ -26,6 +26,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem('crm_dark') === 'true'
   )
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Apply dark mode to html element
   useEffect(() => {
@@ -37,13 +38,22 @@ function App() {
     localStorage.setItem('crm_dark', darkMode)
   }, [darkMode])
 
+  // Close sidebar when screen size increases
+  useEffect(() => {
+    const handler = () => { if (window.innerWidth >= 1024) setSidebarOpen(false) }
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
   const handleNavigate = (tab) => {
     setActiveTab(tab)
     setSelectedCustomer(null)
+    setSidebarOpen(false)
   }
 
   const handleLogout = () => {
     localStorage.removeItem('crm_auth')
+    localStorage.removeItem('crm_current_user')
     setIsLoggedIn(false)
   }
 
@@ -53,17 +63,24 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans">
-      <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={handleNavigate}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <main className="flex-1 ml-64 flex flex-col min-h-screen">
+      {/* Main — offset by sidebar on desktop only */}
+      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full overflow-x-hidden">
         <Header
           activeTab={activeTab}
           onNavigate={handleNavigate}
           darkMode={darkMode}
           onToggleDark={() => setDarkMode(p => !p)}
+          onMenuToggle={() => setSidebarOpen(p => !p)}
         />
 
-        <div className="p-6 flex-1">
+        <div className="p-4 md:p-6 flex-1">
           {selectedCustomer ? (
             <CustomerProfile lead={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
           ) : (
