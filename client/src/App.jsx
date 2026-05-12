@@ -14,7 +14,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('orders')
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-slate-800 font-sans">
+    <div className="flex min-h-screen bg-[#f4f6f9] text-slate-800 font-sans">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content */}

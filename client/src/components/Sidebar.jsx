@@ -14,10 +14,10 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col fixed inset-y-0 left-0 z-50">
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-        <div className="text-2xl bg-sky-500 w-10 h-10 flex items-center justify-center rounded-lg shadow-lg">🤖</div>
+      <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
+        <div className="text-2xl bg-gradient-to-br from-indigo-500 to-violet-600 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-indigo-500/20 text-white">🤖</div>
         <div>
-          <h1 className="font-bold text-lg">Herb Agent</h1>
+          <h1 className="font-bold text-lg text-white">Herb Agent</h1>
           <p className="text-xs text-slate-400">Reorder System</p>
         </div>
       </div>
@@ -25,10 +25,10 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`w-full text-left px-4 py-3 rounded-lg font-semibold flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${
               activeTab === tab.id
-                ? 'bg-sky-500 text-white shadow-lg'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
             }`}
             onClick={() => setActiveTab(tab.id)}
           >
