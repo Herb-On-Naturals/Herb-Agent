@@ -17,7 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
         <div className="text-2xl bg-gradient-to-br from-indigo-500 to-violet-600 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-indigo-500/20 text-white">🤖</div>
         <div>
-          <h1 className="font-bold text-lg text-white">Herb Agent</h1>
+          <h1 className="font-bold text-lg text-white">DealPilot</h1>
           <p className="text-xs text-slate-400">Reorder System</p>
         </div>
       </div>
