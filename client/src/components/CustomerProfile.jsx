@@ -1,129 +1,281 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
-export default function CustomerProfile({ phone, onClose }) {
-  // Mock data for 360 view
-  const customer = {
-    name: 'Maggie Potts',
-    phone: phone || '+91 9876543210',
-    email: 'maggie@example.com',
-    status: 'Interested',
-    tags: ['High Value', 'Regular'],
-    totalSpent: '₹12,450',
+const statusColors = {
+  'New': 'bg-slate-100 text-slate-700',
+  'Contacted': 'bg-blue-100 text-blue-700',
+  'Interested': 'bg-amber-100 text-amber-700',
+  'Won': 'bg-emerald-100 text-emerald-700',
+  'Lost': 'bg-red-100 text-red-700',
+}
+const statuses = ['New', 'Contacted', 'Interested', 'Won', 'Lost']
+
+export default function CustomerProfile({ lead, onClose }) {
+  const phone = lead?.phone || lead
+  const name = lead?.customerName || 'Customer'
+
+  const [orders, setOrders] = useState([])
+  const [note, setNote] = useState('')
+  const [notes, setNotes] = useState([])
+  const [tasks, setTasks] = useState([{ id: 1, title: 'Follow up call', done: false }])
+  const [newTask, setNewTask] = useState('')
+  const [status, setStatus] = useState(lead?.leadStatus || 'New')
+  const [activeSection, setActiveSection] = useState('timeline')
+
+  useEffect(() => {
+    // Fetch orders for this customer by phone
+    fetch(`/api/orders?phone=${phone}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setOrders(d.orders || []) })
+      .catch(() => {})
+  }, [phone])
+
+  const saveNote = () => {
+    if (!note.trim()) return
+    setNotes(prev => [{ text: note, time: new Date().toLocaleTimeString() }, ...prev])
+    setNote('')
   }
 
+  const addTask = () => {
+    if (!newTask.trim()) return
+    setTasks(prev => [...prev, { id: Date.now(), title: newTask, done: false }])
+    setNewTask('')
+  }
+
+  const toggleTask = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+
+  const updateStatus = async (newStatus) => {
+    setStatus(newStatus)
+    try {
+      await fetch(`/api/leads/${phone}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+    } catch (e) {}
+  }
+
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
   const timeline = [
-    { type: 'call', date: '12 May 2026, 10:30 AM', title: 'Outbound Call', desc: 'Spoke about the new offer. Customer is interested.', status: 'completed' },
-    { type: 'chat', date: '11 May 2026, 04:15 PM', title: 'WhatsApp Message', desc: 'Sent broadcast catalog.', status: 'sent' },
-    { type: 'order', date: '10 May 2026, 11:00 AM', title: 'Order Placed', desc: 'Ordered 2x Herbal Tea.', status: 'delivered' },
-    { type: 'call', date: '09 May 2026, 02:00 PM', title: 'Missed Call', desc: 'Customer called back.', status: 'missed' },
+    ...orders.map(o => ({
+      type: 'order', icon: '📦', color: 'bg-purple-100 text-purple-600',
+      title: `Order: ${o.productName || 'Product'}`,
+      desc: `₹${o.totalAmount || 0} — ${o.status || 'Delivered'}`,
+      date: o.createdAt ? new Date(o.createdAt).toLocaleString('en-IN') : '—'
+    })),
+    ...notes.map(n => ({
+      type: 'note', icon: '📝', color: 'bg-yellow-100 text-yellow-600',
+      title: 'Note added',
+      desc: n.text,
+      date: n.time
+    }))
+  ].sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  // If no real data, show mock timeline
+  const displayTimeline = timeline.length > 0 ? timeline : [
+    { type: 'call', icon: '📞', color: 'bg-blue-100 text-blue-600', title: 'Outbound Call', desc: 'Call connected. Customer is interested.', date: '12 May 2026, 10:30 AM' },
+    { type: 'chat', icon: '💬', color: 'bg-green-100 text-green-600', title: 'WhatsApp Message', desc: 'Sent product catalog via broadcast.', date: '11 May 2026, 4:15 PM' },
+    { type: 'order', icon: '📦', color: 'bg-purple-100 text-purple-600', title: 'Order Placed', desc: 'Ordered 2x Herbal Tea — ₹850', date: '10 May 2026, 11:00 AM' },
   ]
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-700 font-medium text-sm flex items-center gap-1">
-          ← Back to List
+    <div className="space-y-4">
+      {/* Back + Header */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-medium px-3 py-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 transition-all"
+        >
+          ← Back to Contacts
         </button>
-        <div className="flex gap-2">
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">Call</button>
-          <button className="border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-50 transition">WhatsApp</button>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Profile Card */}
-        <div className="space-y-6">
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold">
-                {customer.name.split(' ').map(n => n[0]).join('')}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        {/* Left Column: Contact Card */}
+        <div className="space-y-4">
+          {/* Profile Card */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            {/* Avatar */}
+            <div className="flex flex-col items-center text-center mb-5 pb-5 border-b border-slate-100">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg shadow-indigo-500/20">
+                {initials}
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{customer.name}</h3>
-                <p className="text-sm text-slate-500">{customer.phone}</p>
-              </div>
+              <h3 className="text-lg font-bold text-slate-900">{name}</h3>
+              <p className="text-sm text-slate-500 font-mono mt-0.5">{phone}</p>
+              <select
+                value={status}
+                onChange={(e) => updateStatus(e.target.value)}
+                className={`mt-2 text-xs font-bold px-3 py-1 rounded-full border-0 cursor-pointer focus:outline-none ${statusColors[status]}`}
+              >
+                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
-            
+
+            {/* Details */}
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Status</span>
-                <span className="font-semibold text-indigo-600">{customer.status}</span>
+                <span className="text-slate-400">Phone</span>
+                <span className="font-semibold text-slate-800">{phone}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Email</span>
-                <span className="font-semibold text-slate-800">{customer.email}</span>
+                <span className="text-slate-400">Orders</span>
+                <span className="font-semibold text-slate-800">{orders.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Total Spent</span>
-                <span className="font-semibold text-slate-800">{customer.totalSpent}</span>
+                <span className="text-slate-400">Revenue</span>
+                <span className="font-semibold text-emerald-600">
+                  ₹{orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0).toLocaleString()}
+                </span>
               </div>
-            </div>
-
-            <div className="flex gap-1 mt-4">
-              {customer.tags.map(tag => (
-                <span key={tag} className="text-xs bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full font-medium">{tag}</span>
-              ))}
             </div>
           </div>
 
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
-            <h4 className="font-bold text-slate-900 mb-3 text-sm">Notes</h4>
-            <textarea 
-              className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 h-24"
-              placeholder="Add a note..."
-            ></textarea>
-            <button className="mt-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-900 transition">Save Note</button>
-          </div>
-
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
-            <h4 className="font-bold text-slate-900 mb-3 text-sm">Tasks</h4>
-            <div className="space-y-3 mb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
-                <span className="text-slate-700">Follow up on order</span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="New task..."
-              />
-              <button className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-900 transition">Add</button>
-            </div>
+          {/* Action Buttons */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-2">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Actions</h4>
+            <button className="w-full flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
+              📞 <span>Call Now</span>
+            </button>
+            <button className="w-full flex items-center gap-2 bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 transition">
+              💬 <span>Send WhatsApp</span>
+            </button>
+            <button className="w-full flex items-center gap-2 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
+              📧 <span>Send Email</span>
+            </button>
           </div>
         </div>
 
-        {/* Right Column: Timeline */}
-        <div className="lg:col-span-2">
-          <h4 className="font-bold text-slate-900 mb-6">Activity Timeline (Customer 360)</h4>
-          <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-3.5 before:w-0.5 before:bg-slate-100">
-            {timeline.map((item, index) => (
-              <div key={index} className="relative pl-10">
-                {/* Timeline Dot */}
-                <div className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                  item.type === 'call' ? 'bg-blue-100 text-blue-600' :
-                  item.type === 'chat' ? 'bg-green-100 text-green-600' :
-                  'bg-purple-100 text-purple-600'
-                }`}>
-                  {item.type === 'call' ? '📞' : item.type === 'chat' ? '💬' : '📦'}
-                </div>
-                
-                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <h5 className="font-bold text-slate-800 text-sm">{item.title}</h5>
-                    <span className="text-xs text-slate-400">{item.date}</span>
-                  </div>
-                  <p className="text-sm text-slate-600">{item.desc}</p>
-                  <span className={`text-xs font-semibold uppercase mt-2 inline-block ${
-                    item.status === 'completed' || item.status === 'delivered' || item.status === 'sent' ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
+        {/* Right Column: Tabs */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          {/* Section Tabs */}
+          <div className="flex border-b border-slate-100 px-5 pt-1">
+            {[
+              { id: 'timeline', label: '🕐 Activity' },
+              { id: 'notes', label: '📝 Notes' },
+              { id: 'tasks', label: '✅ Tasks' },
+              { id: 'orders', label: '📦 Orders' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSection(tab.id)}
+                className={`px-4 py-3.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
+                  activeSection === tab.id
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
             ))}
+          </div>
+
+          <div className="p-6">
+            {/* Activity Timeline */}
+            {activeSection === 'timeline' && (
+              <div className="space-y-5 relative before:absolute before:inset-y-0 before:left-4 before:w-0.5 before:bg-slate-100">
+                {displayTimeline.map((item, i) => (
+                  <div key={i} className="relative pl-12">
+                    <div className={`absolute left-0 w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${item.color}`}>
+                      {item.icon}
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                      <div className="flex justify-between items-center mb-1">
+                        <h5 className="font-bold text-slate-800 text-sm">{item.title}</h5>
+                        <span className="text-xs text-slate-400">{item.date}</span>
+                      </div>
+                      <p className="text-sm text-slate-600">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Notes */}
+            {activeSection === 'notes' && (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <textarea
+                    className="flex-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 h-20"
+                    placeholder="Write a note about this customer..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  <button onClick={saveNote} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition self-start">
+                    Save
+                  </button>
+                </div>
+                {notes.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">No notes yet. Add one above.</div>
+                ) : notes.map((n, i) => (
+                  <div key={i} className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                    <p className="text-sm text-slate-800">{n.text}</p>
+                    <p className="text-xs text-slate-400 mt-1.5">{n.time}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tasks */}
+            {activeSection === 'tasks' && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Add a task (e.g. Call on Monday)"
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                  />
+                  <button onClick={addTask} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
+                    Add
+                  </button>
+                </div>
+                {tasks.map(task => (
+                  <div key={task.id} className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${task.done ? 'bg-slate-50 opacity-60' : 'bg-indigo-50 border border-indigo-100'}`}>
+                    <input
+                      type="checkbox"
+                      checked={task.done}
+                      onChange={() => toggleTask(task.id)}
+                      className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                    />
+                    <span className={`text-sm flex-1 ${task.done ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}`}>
+                      {task.title}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Orders */}
+            {activeSection === 'orders' && (
+              <div>
+                {orders.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">No orders found for this customer.</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase">Product</th>
+                        <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase">Amount</th>
+                        <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase">Status</th>
+                        <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {orders.map((o, i) => (
+                        <tr key={i}>
+                          <td className="py-3 font-semibold text-slate-800">{o.productName || '—'}</td>
+                          <td className="py-3 text-emerald-600 font-semibold">₹{o.totalAmount || 0}</td>
+                          <td className="py-3"><span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">{o.status || 'Delivered'}</span></td>
+                          <td className="py-3 text-slate-400 text-xs">{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
