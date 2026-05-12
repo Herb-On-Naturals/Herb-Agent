@@ -254,6 +254,7 @@ app.use('/api', productRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api', followupRoutes);
 app.use('/api', leadsRoutes);
+app.use('/api/deals', require('./routes/deals'));
 
 // Health Check
 app.get('/api/health', (req, res) => {

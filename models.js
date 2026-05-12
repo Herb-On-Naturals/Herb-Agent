@@ -274,6 +274,16 @@ const userSchema = new mongoose.Schema({
     active: { type: Boolean, default: true }
 }, { timestamps: true, collection: 'agent_users' });
 
+const dealSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    value: { type: Number, required: true },
+    stage: { type: String, enum: ['Prospecting', 'Proposal Sent', 'Negotiation', 'Won', 'Lost'], default: 'Prospecting' },
+    contact: String,
+    closeDate: String,
+    probability: { type: Number, default: 50 },
+    assignedTo: String,
+}, { timestamps: true, collection: 'agent_deals' });
+
 const Order = mongoose.model('Order', orderSchema);
 const Campaign = mongoose.model('Campaign', campaignSchema);
 const CallLog = mongoose.model('CallLog', callLogSchema);
@@ -282,5 +292,6 @@ const Product = mongoose.model('Product', productSchema);
 const CustomerProfile = mongoose.model('CustomerProfile', customerProfileSchema);
 const Conversation = mongoose.model('Conversation', conversationSchema);
 const User = mongoose.model('User', userSchema);
+const Deal = mongoose.model('Deal', dealSchema);
 
-module.exports = { Order, Campaign, CallLog, Reorder, Product, CustomerProfile, Conversation, User };
+module.exports = { Order, Campaign, CallLog, Reorder, Product, CustomerProfile, Conversation, User, Deal };

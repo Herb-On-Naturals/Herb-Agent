@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const stageColors = {
   'Prospecting': 'bg-slate-100 text-slate-700',
@@ -18,20 +18,62 @@ const mockDeals = [
 ]
 
 export default function Deals() {
-  const [deals, setDeals] = useState(mockDeals)
+  const [deals, setDeals] = useState([])
+  const [loading, setLoading] = useState(true)
   const [view, setView] = useState('list') // list | kanban
   const [showForm, setShowForm] = useState(false)
   const [newDeal, setNewDeal] = useState({ title: '', value: '', contact: '', stage: 'Prospecting', closeDate: '', probability: 50 })
 
-  const addDeal = () => {
-    if (!newDeal.title.trim() || !newDeal.value) return
-    setDeals(prev => [...prev, { ...newDeal, id: Date.now(), value: Number(newDeal.value) }])
-    setNewDeal({ title: '', value: '', contact: '', stage: 'Prospecting', closeDate: '', probability: 50 })
-    setShowForm(false)
+  useEffect(() => { fetchDeals() }, [])
+
+  const fetchDeals = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/deals')
+      const data = await res.json()
+      if (data.success) setDeals(data.deals)
+    } catch (err) {
+      console.error('Error fetching deals:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const updateStage = (id, stage) => {
-    setDeals(prev => prev.map(d => d.id === id ? { ...d, stage } : d))
+  const addDeal = async () => {
+    if (!newDeal.title.trim() || !newDeal.value) return
+    try {
+      const res = await fetch('/api/deals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDeal)
+      })
+      const data = await res.json()
+      if (data.success) {
+        fetchDeals()
+        setNewDeal({ title: '', value: '', contact: '', stage: 'Prospecting', closeDate: '', probability: 50 })
+        setShowForm(false)
+      }
+    } catch (err) {
+      console.error('Error adding deal:', err)
+    }
+  }
+
+  const updateStage = async (id, stage) => {
+    const deal = deals.find(d => d._id === id)
+    if (!deal) return
+    try {
+      const res = await fetch(`/api/deals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...deal, stage })
+      })
+      const data = await res.json()
+      if (data.success) {
+        fetchDeals()
+      }
+    } catch (err) {
+      console.error('Error updating deal:', err)
+    }
   }
 
   const totalPipeline = deals.filter(d => d.stage !== 'Lost').reduce((a, d) => a + d.value, 0)
@@ -129,12 +171,12 @@ export default function Deals() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {deals.map(deal => (
-                <tr key={deal.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={deal._id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-4 font-semibold text-slate-800 max-w-xs truncate">{deal.title}</td>
                   <td className="px-5 py-4 text-slate-600">{deal.contact}</td>
                   <td className="px-5 py-4 font-bold text-slate-900">₹{deal.value.toLocaleString()}</td>
                   <td className="px-5 py-4">
-                    <select value={deal.stage} onChange={e => updateStage(deal.id, e.target.value)}
+                    <select value={deal.stage} onChange={e => updateStage(deal._id, e.target.value)}
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none ${stageColors[deal.stage]}`}>
                       {stages.map(s => <option key={s}>{s}</option>)}
                     </select>
@@ -168,7 +210,7 @@ export default function Deals() {
               </div>
               <div className="space-y-2">
                 {deals.filter(d => d.stage === stage).map(deal => (
-                  <div key={deal.id} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div key={deal._id} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <p className="text-xs font-semibold text-slate-800 line-clamp-2">{deal.title}</p>
                     <p className="text-xs text-slate-500 mt-1">{deal.contact}</p>
                     <p className="text-sm font-bold text-indigo-600 mt-2">₹{deal.value.toLocaleString()}</p>
