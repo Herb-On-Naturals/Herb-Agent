@@ -266,6 +266,14 @@ const conversationSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true, collection: 'agent_conversations' });
 
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ['Admin', 'Manager', 'Agent'], default: 'Agent' },
+    name: String,
+    active: { type: Boolean, default: true }
+}, { timestamps: true, collection: 'agent_users' });
+
 const Order = mongoose.model('Order', orderSchema);
 const Campaign = mongoose.model('Campaign', campaignSchema);
 const CallLog = mongoose.model('CallLog', callLogSchema);
@@ -273,5 +281,6 @@ const Reorder = mongoose.model('Reorder', reorderSchema);
 const Product = mongoose.model('Product', productSchema);
 const CustomerProfile = mongoose.model('CustomerProfile', customerProfileSchema);
 const Conversation = mongoose.model('Conversation', conversationSchema);
+const User = mongoose.model('User', userSchema);
 
-module.exports = { Order, Campaign, CallLog, Reorder, Product, CustomerProfile, Conversation };
+module.exports = { Order, Campaign, CallLog, Reorder, Product, CustomerProfile, Conversation, User };

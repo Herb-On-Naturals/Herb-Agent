@@ -181,37 +181,11 @@ console.log('🔍 [DEBUG] client/dist directory content:', fs.existsSync(path.jo
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 // ==================== AUTH ROUTES ====================
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 app.get('/api/auth/status', (req, res) => {
     res.json({ authenticated: !!(req.session && req.session.isAuthenticated) });
-});
-
-function normalizeSecret(value) {
-    if (typeof value !== 'string') return '';
-    return value.trim().replace(/^['"]|['"]$/g, '');
-}
-
-app.post('/api/auth/login', authLimiter, (req, res) => {
-    const { password } = req.body;
-    const adminPass = normalizeSecret(process.env.ADMIN_PASSWORD || process.env.ADMIN_SECRET);
-    const enteredPass = normalizeSecret(password);
-
-    if (!enteredPass) {
-        return res.status(400).json({ success: false, message: 'Password required' });
-    }
-
-    if (!adminPass) {
-        return res.status(500).json({
-            success: false,
-            message: 'ADMIN_PASSWORD (or ADMIN_SECRET) is not configured on server. Set env var and redeploy.'
-        });
-    }
-
-    if (enteredPass === adminPass) {
-        req.session.isAuthenticated = true;
-        res.json({ success: true, message: 'Logged in successfully' });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid password' });
-    }
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -232,6 +206,25 @@ async function connectDB() {
         }
         await mongoose.connect(uri);
         console.log('✅ MongoDB Connected — Database:', mongoose.connection.name);
+        
+        // Seed default admin if empty
+        try {
+            const { User } = require('./models');
+            const adminExists = await User.findOne({ username: 'admin' });
+            if (!adminExists) {
+                const adminPass = process.env.ADMIN_PASSWORD || 'Herbon@Sales';
+                await User.create({
+                    username: 'admin',
+                    password: adminPass,
+                    role: 'Admin',
+                    name: 'Admin User'
+                });
+                console.log('👤 Default admin user created.');
+            }
+        } catch (seedErr) {
+            console.error('⚠️ Failed to seed admin user:', seedErr.message);
+        }
+        
         return true;
     } catch (err) {
         console.error('❌ MongoDB Connection Failed:', err.message);

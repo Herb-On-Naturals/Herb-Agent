@@ -19,17 +19,26 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    const users = getUsers()
-    const matched = users.find(u => u.username === username && u.password === password && u.active !== false)
-    if (matched) {
-      localStorage.setItem('crm_auth', 'true')
-      localStorage.setItem('crm_current_user', JSON.stringify(matched))
-      onLogin()
-    } else {
-      setError('Invalid username or password.')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      const data = await res.json()
+      if (data.success) {
+        localStorage.setItem('crm_auth', 'true')
+        localStorage.setItem('crm_current_user', JSON.stringify(data.user))
+        onLogin()
+      } else {
+        setError(data.message || 'Invalid username or password.')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Server error. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
