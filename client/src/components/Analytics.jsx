@@ -138,6 +138,79 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming Tasks */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-bold text-slate-900">Upcoming Tasks</h4>
+            <button className="text-xs text-indigo-600 font-semibold hover:text-indigo-700">View All</button>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Call Maggie Potts</p>
+                  <p className="text-xs text-slate-500">Follow up on order #1234</p>
+                </div>
+              </div>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full font-semibold">Today</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Send Broadcast to New Leads</p>
+                  <p className="text-xs text-slate-500">WhatsApp Marketing</p>
+                </div>
+              </div>
+              <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold">Tomorrow</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Update Product Catalog</p>
+                  <p className="text-xs text-slate-500">Add new herbal teas</p>
+                </div>
+              </div>
+              <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold">15 May</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Performing Agents */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-bold text-slate-900">Top Performing Agents</h4>
+            <button className="text-xs text-indigo-600 font-semibold hover:text-indigo-700">View All</button>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-sm">AJ</div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Amit Jain</p>
+                  <p className="text-xs text-slate-500">45 Reorders today</p>
+                </div>
+              </div>
+              <span className="text-sm font-bold text-emerald-500">₹45,200</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-sm">RK</div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Rohit Kumar</p>
+                  <p className="text-xs text-slate-500">32 Reorders today</p>
+                </div>
+              </div>
+              <span className="text-sm font-bold text-indigo-500">₹32,100</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

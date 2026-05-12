@@ -75,6 +75,24 @@ export default function CustomerProfile({ phone, onClose }) {
             ></textarea>
             <button className="mt-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-900 transition">Save Note</button>
           </div>
+
+          <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
+            <h4 className="font-bold text-slate-900 mb-3 text-sm">Tasks</h4>
+            <div className="space-y-3 mb-3">
+              <div className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
+                <span className="text-slate-700">Follow up on order</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="New task..."
+              />
+              <button className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-900 transition">Add</button>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Timeline */}
