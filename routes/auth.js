@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { User } = require('../models');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 // ==================== LOGIN ====================
 router.post('/login', async (req, res) => {
@@ -11,7 +13,27 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Username and password required' });
         }
         
-        const user = await User.findOne({ username, password, active: true }).lean();
+        // 1. Check in agent_users first (Admin/Manager manually created)
+        let user = await User.findOne({ username, password, active: true }).lean();
+        
+        if (!user) {
+            // 2. Check in employees collection (OMS agents)
+            const employee = await mongoose.connection.db.collection('employees').findOne({ employeeId: username });
+            
+            if (employee) {
+                // Verify bcrypt password
+                const isMatch = await bcrypt.compare(password, employee.password);
+                
+                if (isMatch) {
+                    user = {
+                        username: employee.employeeId,
+                        name: employee.name,
+                        role: 'Agent', // All imported employees are agents
+                        active: true
+                    };
+                }
+            }
+        }
         
         if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid username or password' });
