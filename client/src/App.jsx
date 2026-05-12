@@ -31,6 +31,15 @@ function App() {
     localStorage.getItem('crm_dark') === 'true'
   )
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [toasts, setToasts] = useState([])
+
+  const showToast = (message, type = 'info') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 3000)
+  }
 
   // Apply dark mode to html element
   useEffect(() => {
@@ -41,6 +50,13 @@ function App() {
     }
     localStorage.setItem('crm_dark', darkMode)
   }, [darkMode])
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const user = JSON.parse(localStorage.getItem('crm_current_user') || '{}')
+      showToast(`Welcome back, ${user.name || 'User'}!`, 'success')
+    }
+  }, [isLoggedIn])
 
   // Close sidebar when screen size increases
   useEffect(() => {
@@ -110,6 +126,20 @@ function App() {
           )}
         </div>
       </main>
+
+      {/* Toast Container */}
+      <div className="fixed bottom-5 right-5 z-50 space-y-2">
+        {toasts.map(t => (
+          <div key={t.id} className={`px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium flex items-center gap-2 transition-all ${
+            t.type === 'success' ? 'bg-emerald-600' :
+            t.type === 'error' ? 'bg-red-600' :
+            'bg-indigo-600'
+          }`}>
+            <span>{t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
