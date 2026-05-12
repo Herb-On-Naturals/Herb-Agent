@@ -68,23 +68,36 @@ export default function Contacts({ onSelectCustomer }) {
     } catch (err) { console.error(err) }
   }
 
-  const assignLead = (phone, username) => {
-    const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
-    assignments[phone] = username
-    localStorage.setItem('crm_lead_assignments', JSON.stringify(assignments))
-    
-    setLeads(prev => prev.map(l => l.phone === phone ? { ...l, assignedTo: username } : l))
-    
-    // Simulate activity log
-    const currentUser = JSON.parse(localStorage.getItem('crm_current_user') || '{}')
-    const logs = JSON.parse(localStorage.getItem('crm_audit_logs') || '[]')
-    logs.unshift({
-      id: Date.now(),
-      user: currentUser.name || 'Admin',
-      action: `Assigned lead (${phone}) to ${username || 'Unassigned'}`,
-      time: new Date().toISOString()
-    })
-    localStorage.setItem('crm_audit_logs', JSON.stringify(logs.slice(0, 100)))
+  const assignLead = async (phone, username) => {
+    try {
+      const res = await fetch(`/api/leads/${phone}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo: username })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setLeads(prev => prev.map(l => l.phone === phone ? { ...l, assignedTo: username } : l))
+        
+        // Keep local storage as fallback
+        const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
+        assignments[phone] = username
+        localStorage.setItem('crm_lead_assignments', JSON.stringify(assignments))
+        
+        // Simulate activity log
+        const currentUser = JSON.parse(localStorage.getItem('crm_current_user') || '{}')
+        const logs = JSON.parse(localStorage.getItem('crm_audit_logs') || '[]')
+        logs.unshift({
+          id: Date.now(),
+          user: currentUser.name || 'Admin',
+          action: `Assigned lead (${phone}) to ${username || 'Unassigned'}`,
+          time: new Date().toISOString()
+        })
+        localStorage.setItem('crm_audit_logs', JSON.stringify(logs.slice(0, 100)))
+      }
+    } catch (err) {
+      console.error('Error assigning lead:', err)
+    }
   }
 
   const filtered = leads.filter(l =>

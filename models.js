@@ -214,6 +214,7 @@ const customerProfileSchema = new mongoose.Schema({
         enum: ['New', 'Contacted', 'Interested', 'Won', 'Lost'],
         default: 'New'
     },
+    assignedTo: { type: String, default: '' },
     funnelStage: {
         type: String,
         default: 'Discovery'

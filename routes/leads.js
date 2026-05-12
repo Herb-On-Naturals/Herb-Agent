@@ -67,4 +67,24 @@ router.post('/leads/:phone/notes', async (req, res) => {
     }
 });
 
+// ==================== ASSIGN LEAD ====================
+router.post('/leads/:phone/assign', async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const { assignedTo } = req.body;
+        
+        const lead = await CustomerProfile.findOneAndUpdate(
+            { phone: { $regex: phone.slice(-10) } },
+            { $set: { assignedTo: assignedTo } },
+            { new: true }
+        );
+        
+        if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+        
+        res.json({ success: true, lead });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
