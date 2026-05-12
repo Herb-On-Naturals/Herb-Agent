@@ -130,28 +130,44 @@ export default function Leads() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {statuses.map((status) => (
-            <div key={status} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <h4 className="font-bold text-slate-900 mb-3 flex justify-between items-center">
+            <div 
+              key={status} 
+              className="bg-[#f8fafc] p-4 rounded-2xl border border-slate-100 min-h-[400px]"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const phone = e.dataTransfer.getData('phone');
+                updateStatus(phone, status);
+              }}
+            >
+              <h4 className="font-bold text-slate-800 mb-4 flex justify-between items-center text-sm">
                 {status}
-                <span className="text-xs bg-gray-200 text-slate-600 px-2 py-1 rounded-full">
+                <span className="text-xs bg-slate-200/70 text-slate-700 px-2.5 py-0.5 rounded-full font-medium">
                   {leads.filter(l => (l.leadStatus || 'New') === status).length}
                 </span>
               </h4>
               <div className="space-y-3">
                 {leads.filter(l => (l.leadStatus || 'New') === status).map((lead) => (
-                  <div key={lead._id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition">
+                  <div 
+                    key={lead._id} 
+                    className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 cursor-move"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('phone', lead.phone);
+                    }}
+                  >
                     <p className="font-semibold text-slate-900 text-sm">{lead.customerName || 'Unknown'}</p>
-                    <p className="text-xs text-slate-500">{lead.phone}</p>
-                    {lead.notes && <p className="text-xs text-slate-400 mt-1 truncate">{lead.notes}</p>}
+                    <p className="text-xs text-slate-500 mt-0.5">{lead.phone}</p>
+                    {lead.notes && <p className="text-xs text-slate-400 mt-1.5 truncate">{lead.notes}</p>}
                     
-                    <div className="mt-2 flex justify-between items-center">
+                    <div className="mt-3 flex justify-between items-center">
                       <select 
                         value={lead.leadStatus || 'New'} 
                         onChange={(e) => updateStatus(lead.phone, e.target.value)}
-                        className="text-xs border-none bg-transparent text-sky-500 font-semibold focus:outline-none"
+                        className="text-xs border-none bg-transparent text-indigo-600 font-semibold focus:outline-none cursor-pointer"
                       >
                         {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
+                      <span className="text-xs text-slate-400">⋮</span>
                     </div>
                   </div>
                 ))}
