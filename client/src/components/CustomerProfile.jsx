@@ -20,6 +20,12 @@ export default function CustomerProfile({ lead, onClose }) {
   const [newTask, setNewTask] = useState('')
   const [status, setStatus] = useState(lead?.leadStatus || 'New')
   const [activeSection, setActiveSection] = useState('timeline')
+  const [assignedTo, setAssignedTo] = useState('')
+
+  useEffect(() => {
+    const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
+    setAssignedTo(assignments[phone] || lead?.assignedTo || '')
+  }, [phone, lead])
 
   useEffect(() => {
     // Fetch orders for this customer by phone
@@ -125,6 +131,12 @@ export default function CustomerProfile({ lead, onClose }) {
                 <span className="text-slate-400">Revenue</span>
                 <span className="font-semibold text-emerald-600">
                   ₹{orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Assigned To</span>
+                <span className="font-semibold text-indigo-600">
+                  {assignedTo ? `@${assignedTo}` : 'Unassigned'}
                 </span>
               </div>
             </div>

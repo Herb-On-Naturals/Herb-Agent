@@ -15,8 +15,21 @@ export default function Contacts({ onSelectCustomer }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [team, setTeam] = useState([])
 
-  useEffect(() => { fetchLeads() }, [statusFilter])
+  useEffect(() => {
+    fetchLeads()
+    loadTeam()
+  }, [statusFilter])
+
+  const loadTeam = () => {
+    try {
+      const storedTeam = JSON.parse(localStorage.getItem('crm_team') || '[]')
+      setTeam(storedTeam)
+    } catch (err) {
+      console.error('Error loading team:', err)
+    }
+  }
 
   const fetchLeads = async () => {
     setLoading(true)
@@ -25,7 +38,15 @@ export default function Contacts({ onSelectCustomer }) {
       if (statusFilter) params.append('status', statusFilter)
       const res = await fetch(`/api/leads?${params}`)
       const data = await res.json()
-      if (data.success) setLeads(data.leads)
+      if (data.success) {
+        // Hydrate leads with assigned info from local storage if missing
+        const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
+        const hydratedLeads = data.leads.map(l => ({
+          ...l,
+          assignedTo: assignments[l.phone] || l.assignedTo || ''
+        }))
+        setLeads(hydratedLeads)
+      }
     } catch (err) {
       console.error('Error fetching contacts:', err)
     } finally {
@@ -45,6 +66,25 @@ export default function Contacts({ onSelectCustomer }) {
         setLeads(prev => prev.map(l => l.phone === phone ? { ...l, leadStatus: newStatus } : l))
       }
     } catch (err) { console.error(err) }
+  }
+
+  const assignLead = (phone, username) => {
+    const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
+    assignments[phone] = username
+    localStorage.setItem('crm_lead_assignments', JSON.stringify(assignments))
+    
+    setLeads(prev => prev.map(l => l.phone === phone ? { ...l, assignedTo: username } : l))
+    
+    // Simulate activity log
+    const currentUser = JSON.parse(localStorage.getItem('crm_current_user') || '{}')
+    const logs = JSON.parse(localStorage.getItem('crm_audit_logs') || '[]')
+    logs.unshift({
+      id: Date.now(),
+      user: currentUser.name || 'Admin',
+      action: `Assigned lead (${phone}) to ${username || 'Unassigned'}`,
+      time: new Date().toISOString()
+    })
+    localStorage.setItem('crm_audit_logs', JSON.stringify(logs.slice(0, 100)))
   }
 
   const filtered = leads.filter(l =>
@@ -105,55 +145,68 @@ export default function Contacts({ onSelectCustomer }) {
             <p className="text-sm">No contacts found</p>
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</th>
-                <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Notes</th>
-                <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filtered.map((lead) => (
-                <tr key={lead._id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        {(lead.customerName || 'U')[0].toUpperCase()}
-                      </div>
-                      <button
-                        className="font-semibold text-slate-900 hover:text-indigo-600 transition-colors text-left"
-                        onClick={() => onSelectCustomer && onSelectCustomer(lead)}
-                      >
-                        {lead.customerName || 'Unknown'}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600 font-mono text-xs">{lead.phone || '—'}</td>
-                  <td className="px-5 py-4">
-                    <select
-                      value={lead.leadStatus || 'New'}
-                      onChange={(e) => updateStatus(lead.phone, e.target.value)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${statusColors[lead.leadStatus || 'New']}`}
-                    >
-                      {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-5 py-4 text-slate-500 text-xs max-w-xs truncate">{lead.notes || <span className="text-slate-300 italic">No notes</span>}</td>
-                  <td className="px-5 py-4">
-                    <button
-                      onClick={() => onSelectCustomer && onSelectCustomer(lead)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700"
-                    >
-                      View Profile →
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned To</th>
+                  <th className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filtered.map((lead) => (
+                  <tr key={lead._id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                          {(lead.customerName || 'U')[0].toUpperCase()}
+                        </div>
+                        <button
+                          className="font-semibold text-slate-900 hover:text-indigo-600 transition-colors text-left"
+                          onClick={() => onSelectCustomer && onSelectCustomer(lead)}
+                        >
+                          {lead.customerName || 'Unknown'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 font-mono text-xs">{lead.phone || '—'}</td>
+                    <td className="px-5 py-4">
+                      <select
+                        value={lead.leadStatus || 'New'}
+                        onChange={(e) => updateStatus(lead.phone, e.target.value)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${statusColors[lead.leadStatus || 'New']}`}
+                      >
+                        {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-5 py-4">
+                      <select
+                        value={lead.assignedTo || ''}
+                        onChange={(e) => assignLead(lead.phone, e.target.value)}
+                        className="text-xs border border-slate-200 px-2 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[120px]"
+                      >
+                        <option value="">Unassigned</option>
+                        {team.map(m => (
+                          <option key={m.username} value={m.username}>{m.name} ({m.role})</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={() => onSelectCustomer && onSelectCustomer(lead)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700"
+                      >
+                        View Profile →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

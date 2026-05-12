@@ -16,6 +16,7 @@ import LoginPage from './components/LoginPage'
 import Settings from './components/Settings'
 import Calendar from './components/Calendar'
 import Deals from './components/Deals'
+import AuditLogs from './components/AuditLogs'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -98,6 +99,7 @@ function App() {
               {activeTab === 'upload'     && <ExcelUpload />}
               {activeTab === 'analytics'  && <Analytics />}
               {activeTab === 'settings'   && <Settings onLogout={handleLogout} />}
+              {activeTab === 'logs'       && <AuditLogs />}
             </>
           )}
         </div>
