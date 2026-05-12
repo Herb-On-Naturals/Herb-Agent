@@ -9,6 +9,12 @@ router.get('/delivered-orders', async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         let query = { status: 'Delivered' };
+        
+        // If logged in as Agent, only show their own orders
+        if (req.session.user && req.session.user.role === 'Agent') {
+            query.employeeId = req.session.user.username;
+        }
+
         console.log(`🔍 Fetching delivered orders. Query: ${JSON.stringify(query)}`);
 
         // Date filter on deliveredAt
@@ -204,13 +210,19 @@ router.get('/reorder-reminders', async (req, res) => {
         const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
         const twentyFiveDaysAgo = new Date(now.getTime() - (25 * 24 * 60 * 60 * 1000));
 
-        const reminders = await Order.find({
+        let query = {
             status: 'Delivered',
             deliveredAt: { 
                 $gte: thirtyDaysAgo.toISOString(), 
                 $lte: twentyFiveDaysAgo.toISOString() 
             }
-        }).sort({ deliveredAt: 1 }).limit(100).lean();
+        };
+
+        if (req.session.user && req.session.user.role === 'Agent') {
+            query.employeeId = req.session.user.username;
+        }
+
+        const reminders = await Order.find(query).sort({ deliveredAt: 1 }).limit(100).lean();
 
         res.json({ success: true, reminders, count: reminders.length });
     } catch (err) {
