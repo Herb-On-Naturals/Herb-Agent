@@ -17,6 +17,7 @@ import Settings from './components/Settings'
 import Calendar from './components/Calendar'
 import Deals from './components/Deals'
 import AuditLogs from './components/AuditLogs'
+import AgentPerformance from './components/AgentPerformance'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -98,6 +99,7 @@ function App() {
               {activeTab === 'reorders'   && <ReorderHistory />}
               {activeTab === 'upload'     && <ExcelUpload />}
               {activeTab === 'analytics'  && <Analytics />}
+              {activeTab === 'performance' && <AgentPerformance />}
               {activeTab === 'settings'   && <Settings onLogout={handleLogout} />}
               {activeTab === 'logs'       && <AuditLogs />}
             </>

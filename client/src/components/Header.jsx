@@ -13,6 +13,7 @@ const tabTitles = {
   reorders: { title: 'Reorder History', subtitle: 'AI-triggered reorder log.' },
   upload: { title: 'Import Data', subtitle: 'Upload customer data via Excel.' },
   analytics: { title: 'Analytics & Reports', subtitle: 'Business performance insights.' },
+  performance: { title: 'Agent Performance', subtitle: 'Track team productivity and sales leaderboard.' },
   settings: { title: 'Settings', subtitle: 'Configure your CRM preferences.' },
   logs: { title: 'Audit Logs', subtitle: 'View admin and user activity history.' },
 }

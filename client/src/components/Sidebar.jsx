@@ -31,6 +31,7 @@ const navGroups = [
     label: 'Insights',
     items: [
       { id: 'analytics', label: 'Analytics', icon: '📊' },
+      { id: 'performance', label: 'Agent Performance', icon: '🏆' },
     ]
   },
   {
