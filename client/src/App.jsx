@@ -19,6 +19,7 @@ import Deals from './components/Deals'
 import AuditLogs from './components/AuditLogs'
 import AgentPerformance from './components/AgentPerformance'
 import ApiLogs from './components/ApiLogs'
+import TaskManager from './components/TaskManager'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -90,6 +91,7 @@ function App() {
             <>
               {activeTab === 'dashboard'  && <Dashboard onNavigate={handleNavigate} />}
               {activeTab === 'contacts'   && <Contacts onSelectCustomer={setSelectedCustomer} />}
+              {activeTab === 'tasks'      && <TaskManager />}
               {activeTab === 'deals'      && <Deals />}
               {activeTab === 'pipeline'   && <Leads onSelectCustomer={setSelectedCustomer} />}
               {activeTab === 'calendar'   && <Calendar />}

@@ -6,6 +6,7 @@ const navGroups = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: '🏠', roles: ['Admin', 'Manager', 'Agent'] },
       { id: 'contacts', label: 'Contacts', icon: '👥', roles: ['Admin', 'Manager', 'Agent'] },
+      { id: 'tasks', label: 'Tasks', icon: '✔️', roles: ['Admin', 'Manager', 'Agent'] },
       { id: 'deals', label: 'Deals', icon: '💰', roles: ['Admin', 'Manager'] },
       { id: 'pipeline', label: 'Sales Pipeline', icon: '📋', roles: ['Admin', 'Manager'] },
     ]

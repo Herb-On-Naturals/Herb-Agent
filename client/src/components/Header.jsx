@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 const tabTitles = {
   dashboard: { title: 'Dashboard', subtitle: 'Welcome back! Here is your overview.' },
   contacts: { title: 'Contacts', subtitle: 'Manage all your customers in one place.' },
+  tasks: { title: 'Task Manager', subtitle: 'Manage your daily to-do list and follow-ups.' },
   deals: { title: 'Deals', subtitle: 'Track and manage your sales deals & quotations.' },
   pipeline: { title: 'Sales Pipeline', subtitle: 'Track your leads through the funnel.' },
   calendar: { title: 'Calendar', subtitle: 'Schedule and manage your appointments.' },
