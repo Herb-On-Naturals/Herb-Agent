@@ -175,6 +175,9 @@ const requireAuth = (req, res, next) => {
 app.use(requireAuth);
 
 // Static Files
+const fs = require('fs');
+console.log('🔍 [DEBUG] client/dist/index.html exists:', fs.existsSync(path.join(__dirname, 'client', 'dist', 'index.html')));
+console.log('🔍 [DEBUG] client/dist directory content:', fs.existsSync(path.join(__dirname, 'client', 'dist')) ? fs.readdirSync(path.join(__dirname, 'client', 'dist')) : 'Not found');
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 // ==================== AUTH ROUTES ====================
