@@ -191,6 +191,11 @@ router.get('/stats', async (req, res) => {
                 recentReorders: reordersList
             }
         });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // ==================== GET REORDER REMINDERS ====================
 router.get('/reorder-reminders', async (req, res) => {
     try {
