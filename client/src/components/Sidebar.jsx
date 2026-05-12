@@ -30,6 +30,12 @@ const navGroups = [
     items: [
       { id: 'analytics', label: 'Analytics', icon: '📊' },
     ]
+  },
+  {
+    label: 'System',
+    items: [
+      { id: 'settings', label: 'Settings', icon: '⚙️' },
+    ]
   }
 ]
 

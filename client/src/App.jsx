@@ -12,22 +12,28 @@ import OrdersTable from './components/OrdersTable'
 import ReorderHistory from './components/ReorderHistory'
 import ExcelUpload from './components/ExcelUpload'
 import Analytics from './components/Analytics'
+import LoginPage from './components/LoginPage'
+import Settings from './components/Settings'
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    localStorage.getItem('crm_auth') === 'true'
+  )
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
-
-  const handleSelectCustomer = (lead) => {
-    setSelectedCustomer(lead)
-  }
-
-  const handleCloseProfile = () => {
-    setSelectedCustomer(null)
-  }
 
   const handleNavigate = (tab) => {
     setActiveTab(tab)
     setSelectedCustomer(null)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('crm_auth')
+    setIsLoggedIn(false)
+  }
+
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={() => setIsLoggedIn(true)} />
   }
 
   return (
@@ -35,16 +41,16 @@ function App() {
       <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} />
 
       <main className="flex-1 ml-64 flex flex-col min-h-screen">
-        <Header activeTab={activeTab} />
+        <Header activeTab={activeTab} onNavigate={handleNavigate} />
 
         <div className="p-6 flex-1">
           {selectedCustomer ? (
-            <CustomerProfile lead={selectedCustomer} onClose={handleCloseProfile} />
+            <CustomerProfile lead={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
           ) : (
             <>
               {activeTab === 'dashboard'  && <Dashboard onNavigate={handleNavigate} />}
-              {activeTab === 'contacts'   && <Contacts onSelectCustomer={handleSelectCustomer} />}
-              {activeTab === 'pipeline'   && <Leads onSelectCustomer={handleSelectCustomer} />}
+              {activeTab === 'contacts'   && <Contacts onSelectCustomer={setSelectedCustomer} />}
+              {activeTab === 'pipeline'   && <Leads onSelectCustomer={setSelectedCustomer} />}
               {activeTab === 'chat'       && <Chat />}
               {activeTab === 'broadcast'  && <Broadcast />}
               {activeTab === 'calls'      && <CallCenter />}
@@ -52,6 +58,7 @@ function App() {
               {activeTab === 'reorders'   && <ReorderHistory />}
               {activeTab === 'upload'     && <ExcelUpload />}
               {activeTab === 'analytics'  && <Analytics />}
+              {activeTab === 'settings'   && <Settings onLogout={handleLogout} />}
             </>
           )}
         </div>
