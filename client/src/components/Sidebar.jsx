@@ -79,7 +79,12 @@ export default function Sidebar({ activeTab, setActiveTab, open, onClose }) {
       `}>
         {/* Logo */}
         <div className="p-5 flex items-center gap-3 border-b border-slate-800 flex-shrink-0">
-          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-indigo-500/20 text-white text-xl font-bold flex-shrink-0">
+          <img src="/logo.png" alt="DealPilot" className="w-10 h-10 object-contain rounded-xl" onError={(e) => {
+            // Fallback if image not found
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }} />
+          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 w-10 h-10 hidden items-center justify-center rounded-xl shadow-lg shadow-indigo-500/20 text-white text-xl font-bold flex-shrink-0">
             D
           </div>
           <div className="min-w-0">

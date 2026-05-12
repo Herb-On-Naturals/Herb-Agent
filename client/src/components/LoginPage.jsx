@@ -44,7 +44,11 @@ export default function LoginPage({ onLogin }) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-indigo-500/30">
+            <img src="/logo.png" alt="DealPilot" className="w-12 h-12 object-contain" onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }} />
+            <div className="w-12 h-12 hidden bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl items-center justify-center text-2xl font-bold text-white shadow-lg shadow-indigo-500/30">
               D
             </div>
             <div className="text-left">
