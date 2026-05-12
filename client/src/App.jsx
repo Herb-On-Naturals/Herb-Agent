@@ -9,9 +9,11 @@ import Leads from './components/Leads'
 import CallCenter from './components/CallCenter'
 import ReorderHistory from './components/ReorderHistory'
 import ExcelUpload from './components/ExcelUpload'
+import CustomerProfile from './components/CustomerProfile'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('orders')
+  const [activeTab, setActiveTab] = useState('analytics')
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
 
   return (
     <div className="flex min-h-screen bg-[#f4f6f9] text-slate-800 font-sans">
@@ -23,14 +25,20 @@ function App() {
 
         {/* Content */}
         <div className="p-8 flex-1">
-          {activeTab === 'orders' && <OrdersTable />}
-          {activeTab === 'chat' && <Chat />}
-          {activeTab === 'broadcast' && <Broadcast />}
-          {activeTab === 'leads' && <Leads />}
-          {activeTab === 'calls' && <CallCenter />}
-          {activeTab === 'reorders' && <ReorderHistory />}
-          {activeTab === 'upload' && <ExcelUpload />}
-          {activeTab === 'analytics' && <Analytics />}
+          {selectedCustomer ? (
+            <CustomerProfile phone={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
+          ) : (
+            <>
+              {activeTab === 'orders' && <OrdersTable />}
+              {activeTab === 'chat' && <Chat />}
+              {activeTab === 'broadcast' && <Broadcast />}
+              {activeTab === 'leads' && <Leads onSelectCustomer={setSelectedCustomer} />}
+              {activeTab === 'calls' && <CallCenter />}
+              {activeTab === 'reorders' && <ReorderHistory />}
+              {activeTab === 'upload' && <ExcelUpload />}
+              {activeTab === 'analytics' && <Analytics />}
+            </>
+          )}
         </div>
       </main>
     </div>

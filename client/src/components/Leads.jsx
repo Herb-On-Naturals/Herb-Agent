@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-export default function Leads() {
+export default function Leads({ onSelectCustomer }) {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('table') // 'table' or 'kanban'
@@ -107,7 +107,12 @@ export default function Leads() {
             <tbody>
               {leads.map((lead) => (
                 <tr key={lead._id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-semibold text-slate-900">{lead.customerName || 'Unknown'}</td>
+                  <td 
+                    className="px-4 py-3 font-semibold text-slate-900 cursor-pointer hover:text-indigo-600"
+                    onClick={() => onSelectCustomer && onSelectCustomer(lead.phone)}
+                  >
+                    {lead.customerName || 'Unknown'}
+                  </td>
                   <td className="px-4 py-3">{lead.phone || '—'}</td>
                   <td className="px-4 py-3">
                     <select 
@@ -155,7 +160,12 @@ export default function Leads() {
                       e.dataTransfer.setData('phone', lead.phone);
                     }}
                   >
-                    <p className="font-semibold text-slate-900 text-sm">{lead.customerName || 'Unknown'}</p>
+                    <p 
+                      className="font-semibold text-slate-900 text-sm cursor-pointer hover:text-indigo-600"
+                      onClick={() => onSelectCustomer && onSelectCustomer(lead.phone)}
+                    >
+                      {lead.customerName || 'Unknown'}
+                    </p>
                     <p className="text-xs text-slate-500 mt-0.5">{lead.phone}</p>
                     {lead.notes && <p className="text-xs text-slate-400 mt-1.5 truncate">{lead.notes}</p>}
                     
