@@ -8,7 +8,17 @@ router.get('/leads', async (req, res) => {
         const { status, search } = req.query;
         let query = {};
         
-        if (status) query.leadStatus = status;
+        if (status) {
+            if (status === 'New') {
+                query.$or = [
+                    { leadStatus: 'New' },
+                    { leadStatus: { $exists: false } },
+                    { leadStatus: null }
+                ];
+            } else {
+                query.leadStatus = status;
+            }
+        }
         if (search) {
             query.$or = [
                 { customerName: { $regex: search, $options: 'i' } },
@@ -76,6 +86,27 @@ router.post('/leads/:phone/assign', async (req, res) => {
         const lead = await CustomerProfile.findOneAndUpdate(
             { phone: { $regex: phone.slice(-10) } },
             { $set: { assignedTo: assignedTo } },
+            { new: true }
+        );
+        
+        if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+        
+        res.json({ success: true, lead });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+// ==================== UPDATE LEAD NAME ====================
+router.post('/leads/:phone/name', async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const { name } = req.body;
+        
+        if (!name) return res.status(400).json({ success: false, message: 'Name required' });
+        
+        const lead = await CustomerProfile.findOneAndUpdate(
+            { phone: { $regex: phone.slice(-10) } },
+            { $set: { customerName: name } },
             { new: true }
         );
         

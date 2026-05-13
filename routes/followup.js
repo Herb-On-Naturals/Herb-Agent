@@ -4,15 +4,13 @@ const { Conversation } = require('../models');
 
 // ==================== FOLLOW-UP CONFIG ====================
 const FOLLOWUP_MESSAGES = {
-    first: '🙏 Namaste ji! Humne aapko pehle message kiya tha. Kya aapne dekha? Agar koi sawaal hai toh batayein — hum yahan hain aapki madad ke liye! 😊',
-    second: '🎁 Ji, hum abhi bhi aapke liye available hain! Aapke liye ek special offer hai — agar aaj order karein toh extra discount milega. Batayein kya chahiye? 🌿',
-    final: '👋 Ji, lagta hai aap abhi busy hain. Koi baat nahi! Jab bhi aapko Herbon products chahiye, bas hume message kar dijiye. Dhanyavaad! 🙏'
+    first: 'Template: medicine_followup_7days'
 };
 
 const FOLLOWUP_INTERVALS = {
-    first: 24 * 60 * 60 * 1000,   // 24 hours
-    second: 48 * 60 * 60 * 1000,  // 48 hours
-    final: 72 * 60 * 60 * 1000    // 72 hours
+    first: 7 * 24 * 60 * 60 * 1000,   // 7 days
+    second: 7 * 24 * 60 * 60 * 1000,  // 7 days
+    final: 7 * 24 * 60 * 60 * 1000    // 7 days
 };
 
 // ==================== GET PENDING FOLLOW-UPS ====================
@@ -22,7 +20,7 @@ router.get('/followups/pending', async (req, res) => {
         const pending = await Conversation.find({
             status: { $in: ['active', 'interested'] },
             followUpAt: { $lte: now },
-            followUpCount: { $lt: 3 }
+            followUpCount: { $lt: 1 }
         }).sort({ followUpAt: 1 }).limit(50);
 
         res.json({ success: true, pending, count: pending.length });
@@ -38,46 +36,38 @@ router.post('/followups/run', async (req, res) => {
         const conversations = await Conversation.find({
             status: { $in: ['active', 'interested'] },
             followUpAt: { $lte: now },
-            followUpCount: { $lt: 3 }
+            followUpCount: { $lt: 1 }
         }).limit(20);
 
         let sent = 0, closed = 0;
         const results = [];
 
         for (const conv of conversations) {
-            let message;
-            if (conv.followUpCount === 0) {
-                message = FOLLOWUP_MESSAGES.first;
-            } else if (conv.followUpCount === 1) {
-                message = FOLLOWUP_MESSAGES.second;
-            } else {
-                message = FOLLOWUP_MESSAGES.final;
-            }
+            let message = FOLLOWUP_MESSAGES.first;
 
             // Add follow-up message to conversation
             conv.messages.push({
                 role: 'assistant',
-                content: `[AUTO FOLLOW-UP #${conv.followUpCount + 1}] ${message}`,
+                content: `[AUTO FOLLOW-UP] Sent template: medicine_followup_7days`,
                 timestamp: now
             });
 
             conv.followUpCount += 1;
             conv.lastMessageAt = now;
 
-            // Schedule next follow-up or close
-            if (conv.followUpCount >= 3) {
+            // Schedule next follow-up or close (Only 1 follow-up now)
+            if (conv.followUpCount >= 1) {
                 conv.status = 'closed';
                 conv.followUpAt = null;
                 closed++;
             } else {
-                const nextInterval = conv.followUpCount === 1 ? FOLLOWUP_INTERVALS.second : FOLLOWUP_INTERVALS.final;
-                conv.followUpAt = new Date(now.getTime() + nextInterval);
+                conv.followUpAt = new Date(now.getTime() + FOLLOWUP_INTERVALS.first);
                 sent++;
             }
 
             await conv.save();
 
-            // Try to send via WhatsApp (optional — may fail)
+            // Try to send via WhatsApp (Template)
             try {
                 const axios = require('axios');
                 const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
@@ -89,8 +79,13 @@ router.post('/followups/run', async (req, res) => {
                         {
                             messaging_product: 'whatsapp',
                             to: conv.phone,
-                            type: 'text',
-                            text: { body: message }
+                            type: 'template',
+                            template: {
+                                name: 'medicine_followup_7days',
+                                language: {
+                                    code: 'en'
+                                }
+                            }
                         },
                         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                     );
@@ -139,16 +134,16 @@ router.get('/followups/stats', async (req, res) => {
     try {
         const pending = await Conversation.countDocuments({
             followUpAt: { $lte: new Date() },
-            followUpCount: { $lt: 3 },
+            followUpCount: { $lt: 1 },
             status: { $in: ['active', 'interested'] }
         });
         const scheduled = await Conversation.countDocuments({
             followUpAt: { $gt: new Date() },
-            followUpCount: { $lt: 3 },
+            followUpCount: { $lt: 1 },
             status: { $in: ['active', 'interested'] }
         });
         const closedByFollowup = await Conversation.countDocuments({
-            followUpCount: { $gte: 3 },
+            followUpCount: { $gte: 1 },
             status: 'closed'
         });
 

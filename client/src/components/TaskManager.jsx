@@ -10,8 +10,9 @@ const defaultTasks = [
 export default function TaskManager() {
   const [tasks, setTasks] = useState([])
   const [filter, setFilter] = useState('All')
-  const [newTask, setNewTask] = useState({ title: '', customer: '', due: '', priority: 'Medium' })
+  const [newTask, setNewTask] = useState({ title: '', customer: '', due: '', priority: 'Medium', assignedTo: '' })
   const [showAdd, setShowAdd] = useState(false)
+  const [team, setTeam] = useState([])
 
   const currentUser = (() => {
     try { return JSON.parse(localStorage.getItem('crm_current_user') || '{}') } catch { return { username: 'admin', role: 'Admin' } }
@@ -25,6 +26,16 @@ export default function TaskManager() {
       setTasks(defaultTasks)
       localStorage.setItem('crm_tasks', JSON.stringify(defaultTasks))
     }
+
+    // Fetch team from analytics dashboard
+    fetch('/api/analytics/dashboard')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.employees) {
+          setTeam(d.employees);
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const saveTasks = (updated) => {
@@ -38,10 +49,10 @@ export default function TaskManager() {
       ...newTask,
       id: Date.now(),
       status: 'Pending',
-      assignedTo: currentUser.username || 'admin'
+      assignedTo: newTask.assignedTo || currentUser.username || 'admin'
     }
     saveTasks([task, ...tasks])
-    setNewTask({ title: '', customer: '', due: '', priority: 'Medium' })
+    setNewTask({ title: '', customer: '', due: '', priority: 'Medium', assignedTo: '' })
     setShowAdd(false)
   }
 
@@ -119,6 +130,16 @@ export default function TaskManager() {
                 <option>Low</option>
                 <option>Medium</option>
                 <option>High</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Assign To</label>
+              <select value={newTask.assignedTo} onChange={e => setNewTask(p => ({ ...p, assignedTo: e.target.value }))}
+                className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                <option value="">Self (Default)</option>
+                {team.map(m => (
+                  <option key={m.name} value={m.name}>{m.name} ({m.role})</option>
+                ))}
               </select>
             </div>
           </div>

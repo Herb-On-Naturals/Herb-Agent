@@ -420,19 +420,18 @@ async function handleMetaWebhookPost(req, res) {
         }
     }
 
-    if (body.object === 'whatsapp_business_account') {
-        for (const entry of body.entry) {
-            for (const change of entry.changes) {
                 if (change.value.messages) {
                     for (const msg of change.value.messages) {
                         const incoming = msg.text?.body || '';
                         const io = req.app.get('socketio');
-                        if (incoming) await handleIncomingMessage(msg.from, incoming, null, io);
+                        
+                        // Extract sender's profile name from contacts array
+                        const contact = change.value.contacts?.find(c => c.wa_id === msg.from);
+                        const senderName = contact?.profile?.name || 'Customer';
+                        
+                        if (incoming) await handleIncomingMessage(msg.from, incoming, senderName, io);
                     }
                 }
-            }
-        }
-    }
     res.sendStatus(200);
 }
 

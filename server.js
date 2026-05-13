@@ -316,40 +316,31 @@ cron.schedule('*/30 * * * *', async () => {
         const conversations = await Conversation.find({
             status: { $in: ['active', 'interested'] },
             followUpAt: { $lte: now },
-            followUpCount: { $lt: 3 }
+            followUpCount: { $lt: 1 }
         }).limit(10);
 
         if (conversations.length === 0) return;
 
-        const FOLLOWUP_MESSAGES = {
-            0: '🙏 Namaste ji! Humne aapko pehle message kiya tha. Kya aapne dekha? Agar koi sawaal hai toh batayein!',
-            1: '🎁 Ji, aapke liye ek special offer hai — agar aaj order karein toh extra discount milega!',
-            2: '👋 Ji, jab bhi aapko Herbon products chahiye, bas hume message kar dijiye. Dhanyavaad! 🙏'
-        };
-
         for (const conv of conversations) {
-            const message = FOLLOWUP_MESSAGES[conv.followUpCount] || FOLLOWUP_MESSAGES[2];
-
             conv.messages.push({
                 role: 'assistant',
-                content: `[AUTO FOLLOW-UP #${conv.followUpCount + 1}] ${message}`,
+                content: `[AUTO FOLLOW-UP] Sent template: medicine_followup_7days`,
                 timestamp: now
             });
 
             conv.followUpCount += 1;
             conv.lastMessageAt = now;
 
-            if (conv.followUpCount >= 3) {
+            if (conv.followUpCount >= 1) {
                 conv.status = 'closed';
                 conv.followUpAt = null;
             } else {
-                const nextDelay = conv.followUpCount === 1 ? 48 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000;
-                conv.followUpAt = new Date(now.getTime() + nextDelay);
+                conv.followUpAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
             }
 
             await conv.save();
 
-            // Try sending via WhatsApp
+            // Try sending via WhatsApp (Template)
             try {
                 const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID;
                 const token = process.env.META_WA_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
@@ -357,7 +348,17 @@ cron.schedule('*/30 * * * *', async () => {
                 if (phoneId && token) {
                     await axios.post(
                         `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`,
-                        { messaging_product: 'whatsapp', to: conv.phone, type: 'text', text: { body: message } },
+                        {
+                            messaging_product: 'whatsapp',
+                            to: conv.phone,
+                            type: 'template',
+                            template: {
+                                name: 'medicine_followup_7days',
+                                language: {
+                                    code: 'en'
+                                }
+                            }
+                        },
                         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                     );
                 }

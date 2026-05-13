@@ -21,6 +21,28 @@ export default function CustomerProfile({ lead, onClose }) {
   const [status, setStatus] = useState(lead?.leadStatus || 'New')
   const [activeSection, setActiveSection] = useState('timeline')
   const [assignedTo, setAssignedTo] = useState('')
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [currentName, setCurrentName] = useState(name)
+
+  useEffect(() => {
+    setCurrentName(name)
+  }, [name])
+
+  const saveName = async () => {
+    try {
+      const res = await fetch(`/api/leads/${phone}/name`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: currentName })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setIsEditingName(false)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     const assignments = JSON.parse(localStorage.getItem('crm_lead_assignments') || '{}')
@@ -106,7 +128,29 @@ export default function CustomerProfile({ lead, onClose }) {
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg shadow-indigo-500/20">
                 {initials}
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{name}</h3>
+              {isEditingName ? (
+                <div className="flex gap-2 items-center justify-center">
+                  <input
+                    type="text"
+                    value={currentName}
+                    onChange={(e) => setCurrentName(e.target.value)}
+                    className="border border-slate-200 px-2 py-1 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                  />
+                  <button onClick={saveName} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-lg font-medium hover:bg-indigo-700">
+                    Save
+                  </button>
+                  <button onClick={() => setIsEditingName(false)} className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-medium hover:bg-slate-300">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center justify-center">
+                  <h3 className="text-lg font-bold text-slate-900">{currentName}</h3>
+                  <button onClick={() => setIsEditingName(true)} className="text-xs text-indigo-600 hover:text-indigo-800">
+                    ✎
+                  </button>
+                </div>
+              )}
               <p className="text-sm text-slate-500 font-mono mt-0.5">{phone}</p>
               <select
                 value={status}
@@ -145,13 +189,22 @@ export default function CustomerProfile({ lead, onClose }) {
           {/* Action Buttons */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-2">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Actions</h4>
-            <button className="w-full flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
+            <button 
+              onClick={() => window.location.href = `tel:${phone}`}
+              className="w-full flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition"
+            >
               📞 <span>Call Now</span>
             </button>
-            <button className="w-full flex items-center gap-2 bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 transition">
+            <button 
+              onClick={() => window.open(`https://wa.me/${phone}`, '_blank')}
+              className="w-full flex items-center gap-2 bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 transition"
+            >
               💬 <span>Send WhatsApp</span>
             </button>
-            <button className="w-full flex items-center gap-2 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
+            <button 
+              onClick={() => window.location.href = `mailto:${lead?.email || ''}`}
+              className="w-full flex items-center gap-2 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition"
+            >
               📧 <span>Send Email</span>
             </button>
           </div>
