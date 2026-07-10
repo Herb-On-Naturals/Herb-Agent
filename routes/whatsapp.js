@@ -295,7 +295,7 @@ router.get('/whatsapp/templates', (req, res) => {
     res.json({ success: true, templates });
 });
 // --- META WHATSAPP WEBHOOK VERIFICATION (GET) ---
-router.get('/whatsapp/status-callback', (req, res) => {
+router.get('/whatsapp/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
