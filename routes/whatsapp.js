@@ -294,5 +294,39 @@ router.get('/whatsapp/templates', (req, res) => {
 
     res.json({ success: true, templates });
 });
+// ==================== META WHATSAPP WEBHOOK CALLBACK ====================
+router.post('/whatsapp/status-callback', async (req, res) => {
+    res.sendStatus(200);
+
+    try {
+        const entry = req.body.entry?.[0];
+        const changes = entry?.changes?.[0];
+        const value = changes?.value;
+
+        if (value && value.statuses && value.statuses[0]) {
+            const statusObj = value.statuses[0];
+            const status = statusObj.status; 
+            const phone = statusObj.recipient_id; 
+
+            if (status === 'delivered') {
+                const rewardAmount = 25; 
+                const { CustomerProfile } = require('../models');
+                
+                await CustomerProfile.findOneAndUpdate(
+                    { phone: phone },
+                    { 
+                        $inc: { subscriptionBalance: rewardAmount },
+                        $set: { leadStatus: 'Won' }
+                    },
+                    { new: true, upsert: true }
+                );
+
+                console.log(`⚡ [Meta-Wallet] Auto-credited ₹${rewardAmount} to balance ledger of user: ${phone}`);
+            }
+        }
+    } catch (err) {
+        console.error("❌ Meta Webhook response parsing error:", err.message);
+    }
+});
 
 module.exports = router;
