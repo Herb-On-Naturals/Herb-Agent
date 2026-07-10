@@ -294,6 +294,22 @@ router.get('/whatsapp/templates', (req, res) => {
 
     res.json({ success: true, templates });
 });
+// --- META WHATSAPP WEBHOOK VERIFICATION (GET) ---
+router.get('/whatsapp/status-callback', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === process.env.META_WA_WEBHOOK_VERIFY_TOKEN) {
+            console.log('WEBHOOK_VERIFIED');
+            return res.status(200).send(challenge);
+        } else {
+            return res.sendStatus(403);
+        }
+    }
+    return res.sendStatus(400);
+});
 // ==================== META WHATSAPP WEBHOOK CALLBACK ====================
 router.post('/whatsapp/status-callback', async (req, res) => {
     res.sendStatus(200);
