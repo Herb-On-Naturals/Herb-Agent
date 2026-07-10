@@ -157,7 +157,7 @@ const requireAuth = (req, res, next) => {
         '/api/health',
         '/api/agent/webhook',
         '/api/whatsapp/webhook',
-        '/api/bot/webhook',
+        '/api/whatsapp/status-callback',
         '/api/bot/start',
         '/api/bot/simulate',
         '/api/upload-excel'
